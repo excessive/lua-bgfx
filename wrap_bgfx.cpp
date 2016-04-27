@@ -242,6 +242,12 @@ namespace {
 
 }
 
+// #define LUA_API extern "C" __declspec(dllexport) int __cdecl
+#define LUA_API
+
+extern "C" int luaopen_bgfx(lua_State*);
+
+LUA_API
 int luaopen_bgfx(lua_State *L) {
 	// barf
 	luaL_openlib(L, "bgfx_shader", shader_fn, 0);
