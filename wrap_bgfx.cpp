@@ -1,4 +1,9 @@
-#include <lua.hpp>
+extern "C" {
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+}
+
 #include <bgfx/c99/bgfx.h>
 
 namespace {
@@ -241,9 +246,6 @@ namespace {
 	};
 
 }
-
-// #define LUA_API extern "C" __declspec(dllexport) int __cdecl
-#define LUA_API
 
 extern "C" int luaopen_bgfx(lua_State*);
 
