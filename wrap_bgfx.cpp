@@ -22,6 +22,7 @@ namespace {
 			uint8_t attr = (uint8_t)lua_tonumber(L, -3);
 			const char *str = lua_tostring(L, -4);
 			bgfx_dbg_text_printf(x, y, attr, "%s", str);
+			return 0;
 		} },
 
 		{ "dbg_text_clear", [](lua_State *L) {
@@ -56,12 +57,13 @@ namespace {
 				//| BGFX_RESET_MSAA_X16
 				;
 			bgfx_reset(w, h, reset_flags);
+			return 0;
 		} },
 
 		{ "touch", [](lua_State *L) {
 			int n = lua_gettop(L);
 			lua_assert(n == 1);
-			lua_tonumber(L, -1);
+			uint8_t id = (uint8_t)lua_tonumber(L, -1);
 			unsigned int ret = bgfx_touch(id);
 			lua_pushnumber(L, double(ret));
 			return 1;
@@ -85,8 +87,7 @@ namespace {
 			;
 			uint32_t rgba = 0;
 			bgfx_set_state(flags, rgba);
-			lua_pushnumber(L, (double)r);
-			return 1;
+			return 0;
 		} },
 
 		{ "set_view_rect", [](lua_State *L) {
@@ -118,6 +119,7 @@ namespace {
 			uint16_t w = (uint16_t)lua_tonumber(L, -4);
 			uint16_t h = (uint16_t)lua_tonumber(L, -5);
 			bgfx_set_view_scissor(id, x, y, w, h);
+			return 0;
 		} },
 
 		{ "set_view_clear", [](lua_State *L) {
@@ -154,29 +156,30 @@ namespace {
 		} },
 
 		{ "set_view_transform", [](lua_State *) {
-			bgfx_set_view_transform(id, view, proj);
-			bgfx_set_view_transform_stereo(id, view, proj_l, flags, proj_r);
+			// bgfx_set_view_transform(id, view, proj);
+			// bgfx_set_view_transform_stereo(id, view, proj_l, flags, proj_r);
 			return 0;
 		} },
 
 		{ "set_transform", [](lua_State *) {
-			bgfx_set_transform(mtx, num);
+			// bgfx_set_transform(mtx, num);
 			return 0;
 		} },
 
 		{ "set_vertex_buffer", [](lua_State *) {
-			bgfx_set_vertex_buffer(handle, start, num);
+			// bgfx_set_vertex_buffer(handle, start, num);
 			return 0;
 		} },
 
 		{ "set_index_buffer", [](lua_State *) {
-			bgfx_set_index_buffer(handle, first, num);
+			// bgfx_set_index_buffer(handle, first, num);
 			return 0;
 		} },
 
 		{ "get_hmd", [](lua_State *) {
 			// TODO: turn this thing into a table
-			bgfx_hmd *hmd = bgfx_get_hmd();
+			const bgfx_hmd_t *hmd = bgfx_get_hmd();
+			(void)hmd;
 			return 0;
 		} },
 
