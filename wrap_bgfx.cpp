@@ -2,9 +2,8 @@ extern "C" {
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
-}
-
 #include <bgfx/c99/bgfx.h>
+}
 
 namespace {
 	const luaL_Reg m[] = {
@@ -247,9 +246,15 @@ namespace {
 
 }
 
-extern "C" int luaopen_bgfx(lua_State*);
+#ifdef _MSC_VER
+# define LUA_EXPORT __declspec(dllexport)
+#else
+# define LUA_EXPORT
+#endif
 
-LUA_API
+extern "C" LUA_EXPORT int luaopen_bgfx(lua_State*);
+
+LUA_EXPORT
 int luaopen_bgfx(lua_State *L) {
 	// barf
 	luaL_openlib(L, "bgfx_shader", shader_fn, 0);

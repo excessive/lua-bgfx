@@ -1,3 +1,5 @@
+local EXTERN_DIR = "extern"
+
 solution "lua-bgfx" do
 	configurations { "Debug", "Release" }
 	platforms { "Native", "x32", "x64" }
@@ -14,13 +16,12 @@ solution "lua-bgfx" do
 end
 
 project "BGFX" do
-	targetname "bgfx"
+	targetname "bgfx_s"
 	if _OPTIONS["force-gl3"] then
 		defines { "BGFX_CONFIG_RENDERER_OPENGL=33" }
 	end
 	kind "StaticLib"
 	language "C++"
-	local EXTERN_DIR = "extern"
 	local OVR_DIR = "LibOVR"
 	local BX_DIR = path.join(EXTERN_DIR, "bx/include")
 	local BGFX_DIR = path.join(EXTERN_DIR, "bgfx")
@@ -89,14 +90,33 @@ project "lua-bgfx" do
 	}
 
 	links {
-		"luajit-5.1",
 		"BGFX",
-		"GL"
 	}
 
 	includedirs {
-		"/usr/include/luajit-2.0",
 		"extern/bgfx/include"
+	}
+
+	configuration {"vs*"}
+	defines { "_CRT_SECURE_NO_WARNINGS" }
+	includedirs {
+		path.join(EXTERN_DIR, "luajit/src"),
+	}
+	libdirs {
+		path.join(EXTERN_DIR, "luajit/src"),
+	}
+	links {
+		"lua51",
+		"psapi"
+	}
+
+	configuration {"linux"}
+	includedirs {
+		"/usr/include/luajit-2.0"
+	}
+	links {
+		"luajit-5.1",
+		"GL"
 	}
 
 	configuration {"gmake"}
