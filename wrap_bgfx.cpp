@@ -10,7 +10,7 @@ namespace {
 	const luaL_Reg m[] = {
 		// TODO: actually take some args for this
 		{ "init", [](lua_State *) {
-			bgfx_init(BGFX_RENDERER_TYPE_COUNT, BGFX_PCI_ID_NONE, 0, NULL, NULL);
+			bgfx_init(BGFX_RENDERER_TYPE_OPENGL, BGFX_PCI_ID_NONE, 0, NULL, NULL);
 			return 0;
 		} },
 

@@ -20,7 +20,7 @@ project "BGFX" do
 	end
 	kind "StaticLib"
 	language "C++"
-	local EXTERN_DIR = "."
+	local EXTERN_DIR = "extern"
 	local OVR_DIR = "LibOVR"
 	local BX_DIR = path.join(EXTERN_DIR, "bx/include")
 	local BGFX_DIR = path.join(EXTERN_DIR, "bgfx")
@@ -96,7 +96,7 @@ project "lua-bgfx" do
 
 	includedirs {
 		"/usr/include/luajit-2.0",
-		"bgfx/include"
+		"extern/bgfx/include"
 	}
 
 	configuration {"gmake"}
