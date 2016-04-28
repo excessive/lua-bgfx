@@ -484,8 +484,15 @@ static const luaL_Reg m[] = {
 		return 0;
 	} },
 
-	{ "set_index_buffer", [](lua_State *) {
-		// bgfx_set_index_buffer(handle, first, num);
+	{ "set_index_buffer", [](lua_State *L) {
+		int n = lua_gettop(L);
+		lua_assert(n == 3);
+		(void)n;
+
+		bgfx_index_buffer_handle_t* handle = to_index_buffer_ud(L, -1);
+		int first = (int)lua_tonumber(L, -2);
+		int num = (int)lua_tonumber(L, -3);
+		bgfx_set_index_buffer(*handle, first, num);
 		return 0;
 	} },
 
