@@ -9,6 +9,7 @@ extern "C" {
 
 namespace {
 	std::map<const char*, uint32_t> debug_lookup = {
+		{ "none",      BGFX_DEBUG_NONE },
 		{ "wireframe", BGFX_DEBUG_WIREFRAME },
 		{ "stats",     BGFX_DEBUG_STATS },
 		{ "ifh",       BGFX_DEBUG_IFH },
@@ -16,11 +17,80 @@ namespace {
 	};
 
 	std::map<const char*, uint32_t> reset_lookup = {
+		{ "none",               BGFX_RESET_NONE },
+		{ "fullscreen",         BGFX_RESET_FULLSCREEN },
+		{ "msaa_x2",            BGFX_RESET_MSAA_X2 },
+		{ "msaa_x4",            BGFX_RESET_MSAA_X4 },
+		{ "msaa_x8",            BGFX_RESET_MSAA_X8 },
+		{ "msaa_x16",           BGFX_RESET_MSAA_X16 },
 		{ "vsync",              BGFX_RESET_VSYNC },
-		{ "depth_clamp",        BGFX_RESET_DEPTH_CLAMP },
-		{ "srgb_backbuffer",    BGFX_RESET_SRGB_BACKBUFFER },
+		{ "maxanisotropy",      BGFX_RESET_MAXANISOTROPY },
+		{ "capture",            BGFX_RESET_CAPTURE },
+		{ "hmd",                BGFX_RESET_HMD },
+		{ "hmd_debug",          BGFX_RESET_HMD_DEBUG },
+		{ "hmd_recenter",       BGFX_RESET_HMD_RECENTER },
+		{ "flush_after_render", BGFX_RESET_FLUSH_AFTER_RENDER },
 		{ "flip_after_render",  BGFX_RESET_FLIP_AFTER_RENDER },
-		{ "flush_after_render", BGFX_RESET_FLUSH_AFTER_RENDER }
+		{ "srgb_backbuffer",    BGFX_RESET_SRGB_BACKBUFFER },
+		{ "hidpi",              BGFX_RESET_HIDPI },
+		{ "depth_clamp",        BGFX_RESET_DEPTH_CLAMP },
+		{ "suspend",            BGFX_RESET_SUSPEND },
+	};
+
+	// incomplete: doesn't include the macro function stuff
+	std::map<const char*, uint32_t> state_lookup = {
+		{ "none",    BGFX_STATE_NONE },
+		{ "default", BGFX_STATE_DEFAULT },
+
+		{ "rgb_write",   BGFX_STATE_RGB_WRITE },
+		{ "alpha_write", BGFX_STATE_ALPHA_WRITE },
+		{ "depth_write", BGFX_STATE_DEPTH_WRITE },
+
+		{ "depth_test_less",     BGFX_STATE_DEPTH_TEST_LESS },
+		{ "depth_test_lequal",   BGFX_STATE_DEPTH_TEST_LEQUAL },
+		{ "depth_test_equal",    BGFX_STATE_DEPTH_TEST_EQUAL },
+		{ "depth_test_gequal",   BGFX_STATE_DEPTH_TEST_GEQUAL },
+		{ "depth_test_greater",  BGFX_STATE_DEPTH_TEST_GREATER },
+		{ "depth_test_notequal", BGFX_STATE_DEPTH_TEST_NOTEQUAL },
+		{ "depth_test_never",    BGFX_STATE_DEPTH_TEST_NEVER },
+		{ "depth_test_always",   BGFX_STATE_DEPTH_TEST_ALWAYS },
+
+		{ "blend_zero",          BGFX_STATE_BLEND_ZERO },
+		{ "blend_one",           BGFX_STATE_BLEND_ONE },
+		{ "blend_src_color",     BGFX_STATE_BLEND_SRC_COLOR },
+		{ "blend_inv_src_color", BGFX_STATE_BLEND_INV_SRC_COLOR },
+		{ "blend_src_alpha",     BGFX_STATE_BLEND_SRC_ALPHA },
+		{ "blend_inv_src_alpha", BGFX_STATE_BLEND_INV_SRC_ALPHA },
+		{ "blend_dst_alpha",     BGFX_STATE_BLEND_DST_ALPHA },
+		{ "blend_inv_dst_alpha", BGFX_STATE_BLEND_INV_DST_ALPHA },
+		{ "blend_dst_color",     BGFX_STATE_BLEND_DST_COLOR },
+		{ "blend_inv_dst_color", BGFX_STATE_BLEND_INV_DST_COLOR },
+		{ "blend_src_alpha_sat", BGFX_STATE_BLEND_SRC_ALPHA_SAT },
+		// { "blend_factor",        BGFX_STATE_BLEND_FACTOR },
+		// { "blend_inv_factor",    BGFX_STATE_BLEND_INV_FACTOR },
+
+		{ "alpha_to_coverage", BGFX_STATE_BLEND_ALPHA_TO_COVERAGE },
+
+		{ "cull_cw",  BGFX_STATE_CULL_CW },
+		{ "cull_ccw", BGFX_STATE_CULL_CCW },
+
+		{ "pt_tristrip",  BGFX_STATE_PT_TRISTRIP },
+		{ "pt_lines",     BGFX_STATE_PT_LINES },
+		{ "pt_linestrip", BGFX_STATE_PT_LINESTRIP },
+		{ "pt_points",    BGFX_STATE_PT_POINTS },
+
+		{ "msaa",   BGFX_STATE_MSAA },
+		{ "lineaa", BGFX_STATE_LINEAA },
+		{ "conservative_raster", BGFX_STATE_CONSERVATIVE_RASTER },
+
+		{ "blend_add",         BGFX_STATE_BLEND_ADD },
+		{ "blend_alpha",       BGFX_STATE_BLEND_ALPHA },
+		{ "blend_darken",      BGFX_STATE_BLEND_DARKEN },
+		{ "blend_lighten",     BGFX_STATE_BLEND_LIGHTEN },
+		{ "blend_multiply",    BGFX_STATE_BLEND_MULTIPLY },
+		{ "blend_normal",      BGFX_STATE_BLEND_NORMAL },
+		{ "blend_screen",      BGFX_STATE_BLEND_SCREEN },
+		{ "blend_linear_burn", BGFX_STATE_BLEND_LINEAR_BURN }
 	};
 
 	template <typename F>
@@ -104,7 +174,6 @@ namespace {
 		// 	"flip_after_render",
 		// 	"flush_after_render"
 		// })
-
 		{ "reset", [](lua_State *L) {
 			int n = lua_gettop(L);
 			lua_assert(n == 3);
@@ -125,6 +194,7 @@ namespace {
 			return 0;
 		} },
 
+		// bgfx.touch(0)
 		{ "touch", [](lua_State *L) {
 			int n = lua_gettop(L);
 			lua_assert(n == 1);
@@ -135,24 +205,35 @@ namespace {
 			return 1;
 		} },
 
+		// bgfx.frame()
 		{ "frame", [](lua_State *L) {
 			int r = bgfx_frame();
 			lua_pushnumber(L, (double)r);
 			return 1;
 		} },
 
-		// TODO: parse stuff
-		{ "set_state", [](lua_State *) {
-			uint64_t flags = 0
-				| BGFX_STATE_MSAA
-				| BGFX_STATE_ALPHA_WRITE
-				| BGFX_STATE_RGB_WRITE
-				| BGFX_STATE_CULL_CCW
-				| BGFX_STATE_DEPTH_WRITE
-				| BGFX_STATE_DEPTH_TEST_LEQUAL
-			;
+		// bgfx.set_state {
+		// 	"msaa",
+		// 	"alpha_write",
+		// 	"rgb_write",
+		// 	"cull_ccw",
+		// 	"depth_write",
+		// 	"depth_test_lequal"
+		// }
+		{ "set_state", [](lua_State *L) {
+			uint64_t flags = 0;
 			uint32_t rgba = 0;
+
+			table_scan(L, -1, [&](const char *, const char *v) {
+				auto val = state_lookup.find(v);
+				if (val != state_lookup.end()) {
+					flags |= val->second;
+				}
+				return true;
+			});
+
 			bgfx_set_state((uint32_t)flags, rgba);
+
 			return 0;
 		} },
 
