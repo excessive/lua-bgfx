@@ -5,7 +5,43 @@ extern "C" {
 #include <bgfx/c99/bgfx.h>
 }
 
+#include <map>
+
 namespace {
+	std::map<const char*, uint32_t> debug_lookup = {
+		{ "wireframe", BGFX_DEBUG_WIREFRAME },
+		{ "stats",     BGFX_DEBUG_STATS },
+		{ "ifh",       BGFX_DEBUG_IFH },
+		{ "text",      BGFX_DEBUG_TEXT }
+	};
+
+	std::map<const char*, uint32_t> reset_lookup = {
+		{ "vsync",              BGFX_RESET_VSYNC },
+		{ "depth_clamp",        BGFX_RESET_DEPTH_CLAMP },
+		{ "srgb_backbuffer",    BGFX_RESET_SRGB_BACKBUFFER },
+		{ "flip_after_render",  BGFX_RESET_FLIP_AFTER_RENDER },
+		{ "flush_after_render", BGFX_RESET_FLUSH_AFTER_RENDER }
+	};
+
+	template <typename F>
+	void table_scan(lua_State *L, int index, F fn) {
+		lua_pushvalue(L, index);
+		lua_pushnil(L);
+
+		while (lua_next(L, -2)) {
+			lua_pushvalue(L, -2);
+			const char *key = lua_tostring(L, -1);
+			const char *value = lua_tostring(L, -2);
+			lua_pop(L, 2);
+
+			if (!fn(key, value)) {
+				break;
+			}
+		}
+
+		lua_pop(L, 1);
+	}
+
 	const luaL_Reg m[] = {
 		// TODO: actually take some args for this
 		{ "init", [](lua_State *) {
@@ -39,30 +75,53 @@ namespace {
 			return 0;
 		} },
 
-		// TODO: parse stuff
-		{ "set_debug", [](lua_State *) {
-			bgfx_set_debug(BGFX_DEBUG_WIREFRAME | BGFX_DEBUG_STATS | BGFX_DEBUG_IFH | BGFX_DEBUG_TEXT | BGFX_DEBUG_NONE);
+		// bgfx.set_debug {
+		// 	"wireframe",
+		// 	"stats",
+		// 	"ifh",
+		// 	"text"
+		// }
+		{ "set_debug", [](lua_State *L) {
+			uint32_t debug = 0;
+
+			table_scan(L, -1, [&](const char *, const char *v) {
+				auto val = debug_lookup.find(v);
+				if (val != debug_lookup.end()) {
+					debug |= val->second;
+				}
+				return true;
+			});
+
+			bgfx_set_debug(debug);
+
 			return 0;
 		} },
 
-		// TODO: parse stuff
+		// bgfx.reset (1280, 720 {
+		// 	"vsync",
+		// 	"depth_clamp",
+		// 	"srgb_backbuffer",
+		// 	"flip_after_render",
+		// 	"flush_after_render"
+		// })
+
 		{ "reset", [](lua_State *L) {
 			int n = lua_gettop(L);
 			lua_assert(n == 3);
 			(void)n;
 			int w = (int)lua_tonumber(L, -1);
 			int h = (int)lua_tonumber(L, -2);
-			//int f = (int)lua_tonumber(L, -3); // TODO
-			uint32_t reset_flags = 0
-				| BGFX_RESET_VSYNC
-				| BGFX_RESET_DEPTH_CLAMP
-				| BGFX_RESET_SRGB_BACKBUFFER
-				| BGFX_RESET_FLIP_AFTER_RENDER
-				| BGFX_RESET_FLUSH_AFTER_RENDER
-				//| BGFX_RESET_HMD
-				//| BGFX_RESET_MSAA_X16
-				;
-			bgfx_reset(w, h, reset_flags);
+			uint32_t reset = 0;
+
+			table_scan(L, -3, [&](const char *, const char *v) {
+				auto val = reset_lookup.find(v);
+				if (val != reset_lookup.end()) {
+					reset |= val->second;
+				}
+				return true;
+			});
+
+			bgfx_reset(w, h, reset);
 			return 0;
 		} },
 
