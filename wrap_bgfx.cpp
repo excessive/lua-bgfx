@@ -204,10 +204,7 @@ namespace {
 */
 /*	
 		bgfx::createIndexBuffer()
-		bgfx::createProgram()
-		bgfx::createShader()
 		bgfx::createVertexBuffer()
-		bgfx::destroyProgram(program)
 		bgfx::destroyIndexBuffer()
 		bgfx::destroyVertexBuffer()
 */
@@ -215,30 +212,78 @@ namespace {
 	};
 
 	struct shader_ud_t {
-		bgfx_shader_handle_t *handle;
-		char *name;
+		bgfx_shader_handle_t handle;
 	};
 
 	shader_ud_t *to_shader_ud(lua_State *L, int index) {
-		shader_ud_t *ud = (shader_ud_t*)lua_touserdata(L, index);
+		shader_ud_t **ud = (shader_ud_t**)lua_touserdata(L, index);
 		if (ud == NULL) luaL_typerror(L, index, "bgfx_shader");
-		return ud;
+		return *ud;
 	}
 
 	const luaL_Reg shader_fn[] = {
-		{ NULL, NULL }
-	};
+		{ "new", [](lua_State *L) {
+			shader_ud_t **ud = (shader_ud_t**)lua_newuserdata(L, sizeof(shader_ud_t*));
+			*ud = new shader_ud_t();
 
-	const luaL_Reg shader_mt[] = {
-		{ "__gc",  [](lua_State *L) {
+			const void *data = lua_topointer(L, -1);
+			unsigned int size = (unsigned int)lua_tonumber(L, -2);
+			lua_assert(data != NULL);
+			const bgfx_memory_t *mem = bgfx_make_ref(data, size);
+			(*ud)->handle = bgfx_create_shader(mem);
+
+			luaL_getmetatable(L, "bgfx_shader");
+			lua_setmetatable(L, -2);
+			return 1;
+		} },
+		{ "__gc", [](lua_State *L) {
 			shader_ud_t *ud = to_shader_ud(L, 1);
-			bgfx_destroy_shader(*ud->handle);
+			bgfx_destroy_shader(ud->handle);
 			return 0;
 		} },
 		{ "__tostring", [](lua_State *L) {
 			char buff[32];
 			sprintf(buff, "%p", to_shader_ud(L, 1));
 			lua_pushfstring(L, "bgfx_shader (%s)", buff);
+			return 0;
+		} },
+		{ NULL, NULL }
+	};
+
+	struct program_ud_t {
+		bgfx_program_handle_t handle;
+	};
+
+	program_ud_t *to_program_ud(lua_State *L, int index) {
+		program_ud_t **ud = (program_ud_t**)lua_touserdata(L, index);
+		if (ud == NULL) luaL_typerror(L, index, "bgfx_program");
+		return *ud;
+	}
+
+	const luaL_Reg program_fn[] = {
+		{ "new", [](lua_State *L) {
+			program_ud_t **ud = (program_ud_t**)lua_newuserdata(L, sizeof(program_ud_t*));
+			*ud = new program_ud_t();
+
+			lua_assert(data != NULL);
+			shader_ud_t *vsh = to_shader_ud(L, -1);
+			shader_ud_t *fsh = to_shader_ud(L, -1);
+
+			(*ud)->handle = bgfx_create_program(vsh->handle, fsh->handle, false);
+
+			luaL_getmetatable(L, "bgfx_program");
+			lua_setmetatable(L, -2);
+			return 1;
+		} },
+		{ "__gc",  [](lua_State *L) {
+			program_ud_t *ud = to_program_ud(L, 1);
+			bgfx_destroy_program(ud->handle);
+			return 0;
+		} },
+		{ "__tostring", [](lua_State *L) {
+			char buff[32];
+			sprintf(buff, "%p", to_program_ud(L, 1));
+			lua_pushfstring(L, "bgfx_program (%s)", buff);
 			return 0;
 		} },
 		{ NULL, NULL }
@@ -256,18 +301,17 @@ extern "C" LUA_EXPORT int luaopen_bgfx(lua_State*);
 
 LUA_EXPORT
 int luaopen_bgfx(lua_State *L) {
-	// barf
-	luaL_openlib(L, "bgfx_shader", shader_fn, 0);
 	luaL_newmetatable(L, "bgfx_shader");
-	luaL_openlib(L, 0, shader_mt, 0);
-	lua_pushliteral(L, "__index");
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_pushliteral(L, "__metatable");
-	lua_pushvalue(L, -3);
-	lua_rawset(L, -3);
-	lua_pop(L, 1);
+	luaL_register(L, NULL, shader_fn);
+	lua_pushvalue(L, -1);
+	lua_setfield(L, -1, "__index");
+
+	luaL_newmetatable(L, "bgfx_program");
+	luaL_register(L, NULL, program_fn);
+	lua_pushvalue(L, -1);
+	lua_setfield(L, -1, "__index");
 
 	luaL_register(L, "bgfx", m);
+
 	return 1;
 }
