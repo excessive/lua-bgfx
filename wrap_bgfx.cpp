@@ -10,7 +10,7 @@ extern "C" {
 #include <bgfx/c99/bgfx.h>
 }
 
-#include <map>
+#include <unordered_map>
 
 static bgfx_shader_handle_t *to_shader_ud(lua_State *L, int index) {
 	bgfx_shader_handle_t **ud = (bgfx_shader_handle_t**)lua_touserdata(L, index);
@@ -150,7 +150,7 @@ static const luaL_Reg index_buffer_fn[] = {
 	{ NULL, NULL }
 };
 
-static std::map<const char*, uint32_t> debug_lookup = {
+static std::unordered_map<const char*, uint32_t> debug_lookup = {
 	{ "none",      BGFX_DEBUG_NONE },
 	{ "wireframe", BGFX_DEBUG_WIREFRAME },
 	{ "stats",     BGFX_DEBUG_STATS },
@@ -158,7 +158,7 @@ static std::map<const char*, uint32_t> debug_lookup = {
 	{ "text",      BGFX_DEBUG_TEXT }
 };
 
-static std::map<const char*, uint32_t> reset_lookup = {
+static std::unordered_map<const char*, uint32_t> reset_lookup = {
 	{ "none",               BGFX_RESET_NONE },
 	{ "fullscreen",         BGFX_RESET_FULLSCREEN },
 	{ "msaa_x2",            BGFX_RESET_MSAA_X2 },
@@ -180,7 +180,7 @@ static std::map<const char*, uint32_t> reset_lookup = {
 };
 
 // incomplete: doesn't include the macro function stuff
-static std::map<const char*, uint32_t> state_lookup = {
+static std::unordered_map<const char*, uint32_t> state_lookup = {
 	{ "none",    BGFX_STATE_NONE },
 	{ "default", BGFX_STATE_DEFAULT },
 
