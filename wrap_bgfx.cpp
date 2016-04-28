@@ -479,11 +479,21 @@ static const luaL_Reg m[] = {
 		return 0;
 	} },
 
-	{ "set_vertex_buffer", [](lua_State *) {
-		// bgfx_set_vertex_buffer(handle, start, num);
+	// bgfx.set_vertex_buffer(vb, 0, 32)
+	{ "set_vertex_buffer", [](lua_State *L) {
+		int n = lua_gettop(L);
+		lua_assert(n == 3);
+		(void)n;
+
+		bgfx_vertex_buffer_handle_t* handle = to_vertex_buffer_ud(L, -1);
+		int start = (int)lua_tonumber(L, -2);
+		int num = (int)lua_tonumber(L, -3);
+
+		bgfx_set_vertex_buffer(*handle, start, num);
 		return 0;
 	} },
 
+	// bgfx.set_index_buffer(ib, 0, 60)
 	{ "set_index_buffer", [](lua_State *L) {
 		int n = lua_gettop(L);
 		lua_assert(n == 3);
