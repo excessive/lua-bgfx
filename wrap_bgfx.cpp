@@ -2,39 +2,57 @@ extern "C" {
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+
+// "but holo, this is C++, why are you using the C API?", you might ask.
+// well, my dear reader, it is simple: C APIs are easier to comprehend.
+//
+// Lua doesn't really do C++-style magic anyhow.
 #include <bgfx/c99/bgfx.h>
 }
 
 #include <map>
 
-struct shader_ud_t {
-	bgfx_shader_handle_t handle;
-};
-
-shader_ud_t *to_shader_ud(lua_State *L, int index) {
-	shader_ud_t **ud = (shader_ud_t**)lua_touserdata(L, index);
+static bgfx_shader_handle_t *to_shader_ud(lua_State *L, int index) {
+	bgfx_shader_handle_t **ud = (bgfx_shader_handle_t**)lua_touserdata(L, index);
 	if (ud == NULL) luaL_typerror(L, index, "bgfx_shader");
 	return *ud;
 }
 
-const luaL_Reg shader_fn[] = {
+static bgfx_program_handle_t *to_program_ud(lua_State *L, int index) {
+	bgfx_program_handle_t **ud = (bgfx_program_handle_t**)lua_touserdata(L, index);
+	if (ud == NULL) luaL_typerror(L, index, "bgfx_program");
+	return *ud;
+}
+
+static bgfx_vertex_buffer_handle_t *to_vertex_buffer_ud(lua_State *L, int index) {
+	bgfx_vertex_buffer_handle_t **ud = (bgfx_vertex_buffer_handle_t**)lua_touserdata(L, index);
+	if (ud == NULL) luaL_typerror(L, index, "bgfx_vertex_buffer");
+	return *ud;
+}
+
+static bgfx_index_buffer_handle_t *to_index_buffer_ud(lua_State *L, int index) {
+	bgfx_index_buffer_handle_t **ud = (bgfx_index_buffer_handle_t**)lua_touserdata(L, index);
+	if (ud == NULL) luaL_typerror(L, index, "bgfx_index_buffer");
+	return *ud;
+}
+
+static const luaL_Reg shader_fn[] = {
 	{ "new", [](lua_State *L) {
-		shader_ud_t **ud = (shader_ud_t**)lua_newuserdata(L, sizeof(shader_ud_t*));
-		*ud = new shader_ud_t();
+		bgfx_shader_handle_t **ud = (bgfx_shader_handle_t**)lua_newuserdata(L, sizeof(bgfx_shader_handle_t*));
 
 		const void *data = lua_topointer(L, -1);
 		unsigned int size = (unsigned int)lua_tonumber(L, -2);
 		lua_assert(data != NULL);
 		const bgfx_memory_t *mem = bgfx_make_ref(data, size);
-		(*ud)->handle = bgfx_create_shader(mem);
+		*(*ud) = bgfx_create_shader(mem);
 
 		luaL_getmetatable(L, "bgfx_shader");
 		lua_setmetatable(L, -2);
 		return 1;
 	} },
 	{ "__gc", [](lua_State *L) {
-		shader_ud_t *ud = to_shader_ud(L, 1);
-		bgfx_destroy_shader(ud->handle);
+		bgfx_shader_handle_t *ud = to_shader_ud(L, 1);
+		bgfx_destroy_shader(*ud);
 		return 0;
 	} },
 	{ "__tostring", [](lua_State *L) {
@@ -46,34 +64,23 @@ const luaL_Reg shader_fn[] = {
 	{ NULL, NULL }
 };
 
-struct program_ud_t {
-	bgfx_program_handle_t handle;
-};
-
-program_ud_t *to_program_ud(lua_State *L, int index) {
-	program_ud_t **ud = (program_ud_t**)lua_touserdata(L, index);
-	if (ud == NULL) luaL_typerror(L, index, "bgfx_program");
-	return *ud;
-}
-
-const luaL_Reg program_fn[] = {
+static const luaL_Reg program_fn[] = {
 	{ "new", [](lua_State *L) {
-		program_ud_t **ud = (program_ud_t**)lua_newuserdata(L, sizeof(program_ud_t*));
-		*ud = new program_ud_t();
+		bgfx_program_handle_t **ud = (bgfx_program_handle_t**)lua_newuserdata(L, sizeof(bgfx_program_handle_t*));
 
 		// lua_assert(data != NULL);
-		shader_ud_t *vsh = to_shader_ud(L, -1);
-		shader_ud_t *fsh = to_shader_ud(L, -1);
+		bgfx_shader_handle_t vsh = *to_shader_ud(L, -1);
+		bgfx_shader_handle_t fsh = *to_shader_ud(L, -1);
 
-		(*ud)->handle = bgfx_create_program(vsh->handle, fsh->handle, false);
+		*(*ud) = bgfx_create_program(vsh, fsh, false);
 
 		luaL_getmetatable(L, "bgfx_program");
 		lua_setmetatable(L, -2);
 		return 1;
 	} },
 	{ "__gc",  [](lua_State *L) {
-		program_ud_t *ud = to_program_ud(L, 1);
-		bgfx_destroy_program(ud->handle);
+		bgfx_program_handle_t *ud = to_program_ud(L, 1);
+		bgfx_destroy_program(*ud);
 		return 0;
 	} },
 	{ "__tostring", [](lua_State *L) {
@@ -85,20 +92,9 @@ const luaL_Reg program_fn[] = {
 	{ NULL, NULL }
 };
 
-struct vertex_buffer_ud_t {
-	bgfx_vertex_buffer_handle_t handle;
-};
-
-vertex_buffer_ud_t *to_vertex_buffer_ud(lua_State *L, int index) {
-	vertex_buffer_ud_t **ud = (vertex_buffer_ud_t**)lua_touserdata(L, index);
-	if (ud == NULL) luaL_typerror(L, index, "bgfx_vertex_buffer");
-	return *ud;
-}
-
-const luaL_Reg vertex_buffer_fn[] = {
+static const luaL_Reg vertex_buffer_fn[] = {
 	{ "new", [](lua_State *L) {
-		vertex_buffer_ud_t **ud = (vertex_buffer_ud_t**)lua_newuserdata(L, sizeof(vertex_buffer_ud_t*));
-		*ud = new vertex_buffer_ud_t();
+		bgfx_vertex_buffer_handle_t **ud = (bgfx_vertex_buffer_handle_t**)lua_newuserdata(L, sizeof(bgfx_vertex_buffer_handle_t*));
 
 		// lua_assert(data != NULL);
 
@@ -106,15 +102,15 @@ const luaL_Reg vertex_buffer_fn[] = {
 		uint16_t flags = 0;
 		bgfx_vertex_decl_t *decl = NULL;
 
-		(*ud)->handle = bgfx_create_vertex_buffer(mem, decl, flags);
+		*(*ud) = bgfx_create_vertex_buffer(mem, decl, flags);
 
 		luaL_getmetatable(L, "bgfx_vertex_buffer");
 		lua_setmetatable(L, -2);
 		return 1;
 	} },
 	{ "__gc",  [](lua_State *L) {
-		vertex_buffer_ud_t *ud = to_vertex_buffer_ud(L, 1);
-		bgfx_destroy_vertex_buffer(ud->handle);
+		bgfx_vertex_buffer_handle_t *ud = to_vertex_buffer_ud(L, 1);
+		bgfx_destroy_vertex_buffer(*ud);
 		return 0;
 	} },
 	{ "__tostring", [](lua_State *L) {
@@ -126,34 +122,23 @@ const luaL_Reg vertex_buffer_fn[] = {
 	{ NULL, NULL }
 };
 
-struct index_buffer_ud_t {
-	bgfx_index_buffer_handle_t handle;
-};
-
-index_buffer_ud_t *to_index_buffer_ud(lua_State *L, int index) {
-	index_buffer_ud_t **ud = (index_buffer_ud_t**)lua_touserdata(L, index);
-	if (ud == NULL) luaL_typerror(L, index, "bgfx_index_buffer");
-	return *ud;
-}
-
-const luaL_Reg index_buffer_fn[] = {
+static const luaL_Reg index_buffer_fn[] = {
 	{ "new", [](lua_State *L) {
-		index_buffer_ud_t **ud = (index_buffer_ud_t**)lua_newuserdata(L, sizeof(index_buffer_ud_t*));
-		*ud = new index_buffer_ud_t();
+		bgfx_index_buffer_handle_t **ud = (bgfx_index_buffer_handle_t**)lua_newuserdata(L, sizeof(bgfx_index_buffer_handle_t*));
 
 		lua_assert(data != NULL);
 		const bgfx_memory_t *mem = NULL;
 		uint16_t flags = 0;
 
-		(*ud)->handle = bgfx_create_index_buffer(mem, flags);
+		*(*ud) = bgfx_create_index_buffer(mem, flags);
 
 		luaL_getmetatable(L, "bgfx_index_buffer");
 		lua_setmetatable(L, -2);
 		return 1;
 	} },
 	{ "__gc",  [](lua_State *L) {
-		index_buffer_ud_t *ud = to_index_buffer_ud(L, 1);
-		bgfx_destroy_index_buffer(ud->handle);
+		bgfx_index_buffer_handle_t *ud = to_index_buffer_ud(L, 1);
+		bgfx_destroy_index_buffer(*ud);
 		return 0;
 	} },
 	{ "__tostring", [](lua_State *L) {
@@ -165,7 +150,7 @@ const luaL_Reg index_buffer_fn[] = {
 	{ NULL, NULL }
 };
 
-std::map<const char*, uint32_t> debug_lookup = {
+static std::map<const char*, uint32_t> debug_lookup = {
 	{ "none",      BGFX_DEBUG_NONE },
 	{ "wireframe", BGFX_DEBUG_WIREFRAME },
 	{ "stats",     BGFX_DEBUG_STATS },
@@ -173,7 +158,7 @@ std::map<const char*, uint32_t> debug_lookup = {
 	{ "text",      BGFX_DEBUG_TEXT }
 };
 
-std::map<const char*, uint32_t> reset_lookup = {
+static std::map<const char*, uint32_t> reset_lookup = {
 	{ "none",               BGFX_RESET_NONE },
 	{ "fullscreen",         BGFX_RESET_FULLSCREEN },
 	{ "msaa_x2",            BGFX_RESET_MSAA_X2 },
@@ -195,7 +180,7 @@ std::map<const char*, uint32_t> reset_lookup = {
 };
 
 // incomplete: doesn't include the macro function stuff
-std::map<const char*, uint32_t> state_lookup = {
+static std::map<const char*, uint32_t> state_lookup = {
 	{ "none",    BGFX_STATE_NONE },
 	{ "default", BGFX_STATE_DEFAULT },
 
@@ -251,7 +236,7 @@ std::map<const char*, uint32_t> state_lookup = {
 };
 
 template <typename F>
-void table_scan(lua_State *L, int index, F fn) {
+static void table_scan(lua_State *L, int index, F fn) {
 	lua_pushvalue(L, index);
 	lua_pushnil(L);
 
@@ -269,7 +254,7 @@ void table_scan(lua_State *L, int index, F fn) {
 	lua_pop(L, 1);
 }
 
-const luaL_Reg m[] = {
+static const luaL_Reg m[] = {
 	// bgfx.init()
 	// TODO: actually take some args for this
 	{ "init", [](lua_State *) {
@@ -469,7 +454,7 @@ const luaL_Reg m[] = {
 		lua_assert(n == 4);
 		(void)n;
 		uint8_t id = (uint8_t)lua_tonumber(L, -1);
-		program_ud_t *program = to_program_ud(L, -2);
+		bgfx_program_handle_t *program = to_program_ud(L, -2);
 		int32_t depth = 0;
 		bool preserve_state = false;
 		if (n >= 3) {
@@ -478,7 +463,7 @@ const luaL_Reg m[] = {
 		if (n >= 4) {
 			preserve_state = lua_toboolean(L, -4) ? true : false;
 		}
-		uint32_t r = bgfx_submit(id, program->handle, depth, preserve_state);
+		uint32_t r = bgfx_submit(id, *program, depth, preserve_state);
 		lua_pushnumber(L, r);
 		return 1;
 	} },
