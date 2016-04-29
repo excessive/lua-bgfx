@@ -8,6 +8,7 @@ extern "C" {
 //
 // Lua doesn't really do C++-style magic anyhow.
 #include <bgfx/c99/bgfx.h>
+#include <bgfx/c99/bgfxplatform.h>
 }
 
 #include <unordered_map>
@@ -69,8 +70,8 @@ static const luaL_Reg program_fn[] = {
 		bgfx_program_handle_t **ud = (bgfx_program_handle_t**)lua_newuserdata(L, sizeof(bgfx_program_handle_t*));
 
 		// lua_assert(data != NULL);
-		bgfx_shader_handle_t vsh = *to_shader_ud(L, -1);
-		bgfx_shader_handle_t fsh = *to_shader_ud(L, -1);
+		bgfx_shader_handle_t vsh = *to_shader_ud(L, 1);
+		bgfx_shader_handle_t fsh = *to_shader_ud(L, 2);
 
 		*(*ud) = bgfx_create_program(vsh, fsh, false);
 
@@ -148,6 +149,23 @@ static const luaL_Reg index_buffer_fn[] = {
 		return 0;
 	} },
 	{ NULL, NULL }
+};
+
+static std::unordered_map<const char*, uint32_t> clear_lookup = {
+	{ "none", BGFX_CLEAR_NONE },
+	{ "color", BGFX_CLEAR_COLOR },
+	{ "depth", BGFX_CLEAR_DEPTH },
+	{ "stencil", BGFX_CLEAR_STENCIL },
+	{ "discard_color_0", BGFX_CLEAR_DISCARD_COLOR_0 },
+	{ "discard_color_1", BGFX_CLEAR_DISCARD_COLOR_1 },
+	{ "discard_color_2", BGFX_CLEAR_DISCARD_COLOR_2 },
+	{ "discard_color_3", BGFX_CLEAR_DISCARD_COLOR_3 },
+	{ "discard_color_4", BGFX_CLEAR_DISCARD_COLOR_4 },
+	{ "discard_color_5", BGFX_CLEAR_DISCARD_COLOR_5 },
+	{ "discard_color_6", BGFX_CLEAR_DISCARD_COLOR_6 },
+	{ "discard_color_7", BGFX_CLEAR_DISCARD_COLOR_7 },
+	{ "discard_depth", BGFX_CLEAR_DISCARD_DEPTH },
+	{ "discard_stencil", BGFX_CLEAR_DISCARD_STENCIL }
 };
 
 static std::unordered_map<const char*, uint32_t> debug_lookup = {
@@ -235,6 +253,32 @@ static std::unordered_map<const char*, uint32_t> state_lookup = {
 	{ "blend_linear_burn", BGFX_STATE_BLEND_LINEAR_BURN }
 };
 
+static void stack_dump(lua_State *L) {
+	int i = lua_gettop(L);
+	int m = i;
+	printf("---------------- Stack Dump ----------------\n");
+	while(i) {
+		int t = lua_type(L, i);
+		int n = -(m - i + 1);
+		switch (t) {
+			case LUA_TSTRING:
+				printf("%d (%d):`%s'\n", i, n, lua_tostring(L, i));
+				break;
+			case LUA_TBOOLEAN:
+				printf("%d (%d): %s\n", i, n, lua_toboolean(L, i) ? "true" : "false");
+				break;
+			case LUA_TNUMBER:
+				printf("%d (%d): %g\n", i, n, lua_tonumber(L, i));
+				break;
+			default:
+				printf("%d (%d): %s\n", i, n, lua_typename(L, t));
+				break;
+		}
+		i--;
+	}
+	printf("--------------- Stack Dump Finished ---------------\n");
+}
+
 template <typename F>
 static void table_scan(lua_State *L, int index, F fn) {
 	lua_pushvalue(L, index);
@@ -244,27 +288,78 @@ static void table_scan(lua_State *L, int index, F fn) {
 		lua_pushvalue(L, -2);
 		const char *key = lua_tostring(L, -1);
 		const char *value = lua_tostring(L, -2);
-		lua_pop(L, 2);
 
-		if (!fn(key, value)) {
-			break;
-		}
+		// printf("%s: %s\n", key, value);
+
+		fn(key, value);
+
+		lua_pop(L, 2);
 	}
 
 	lua_pop(L, 1);
 }
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_syswm.h>
+
+static SDL_Window *_window = NULL;
+
 static const luaL_Reg m[] = {
 	// bgfx.init()
 	// TODO: actually take some args for this
-	{ "init", [](lua_State *) {
-		bgfx_init(BGFX_RENDERER_TYPE_OPENGL, BGFX_PCI_ID_NONE, 0, NULL, NULL);
+	{ "init", [](lua_State *L) {
+		bool use_sdl = false;
+		if (lua_isboolean(L, 1)) {
+			use_sdl = lua_toboolean(L, 1) ? true : false;
+		}
+		if (use_sdl) {
+			SDL_InitSubSystem(SDL_INIT_VIDEO);
+			_window = SDL_CreateWindow("bgfx!",
+				SDL_WINDOWPOS_UNDEFINED,
+				SDL_WINDOWPOS_UNDEFINED,
+				1280, 720, 0
+				| SDL_WINDOW_ALLOW_HIGHDPI
+				| SDL_WINDOW_OPENGL
+			);
+			bgfx_platform_data_t data;
+			SDL_SysWMinfo wmi;
+			SDL_VERSION(&wmi.version);
+			if (!SDL_GetWindowWMInfo(_window, &wmi)) {
+				return 0;
+			}
+#if BX_PLATFORM_LINUX || BX_PLATFORM_BSD
+			data.ndt          = wmi.info.x11.display;
+			data.nwh          = (void*)(uintptr_t)wmi.info.x11.window;
+#elif BX_PLATFORM_OSX
+			data.ndt          = NULL;
+			data.nwh          = wmi.info.cocoa.window;
+#elif BX_PLATFORM_WINDOWS
+			data.ndt          = NULL;
+			data.nwh          = wmi.info.win.window;
+#elif BX_PLATFORM_STEAMLINK
+			data.ndt          = wmi.info.vivante.display;
+			data.nwh          = wmi.info.vivante.window;
+#endif // BX_PLATFORM_
+			data.context      = NULL;
+			data.backBuffer   = NULL;
+			data.backBufferDS = NULL;
+
+			bgfx_set_platform_data(&data);
+		}
+		if (!bgfx_init(BGFX_RENDERER_TYPE_COUNT, BGFX_PCI_ID_NONE, 0, NULL, NULL)) {
+			printf(":(\n");
+			return 0;
+		}
 		return 0;
 	} },
 
 	// bgfx.shutdown()
 	{ "shutdown", [](lua_State *) {
 		bgfx_shutdown();
+		if (_window) {
+			SDL_DestroyWindow(_window);
+			SDL_QuitSubSystem(SDL_INIT_VIDEO);
+		}
 		return 0;
 	} },
 
@@ -273,10 +368,11 @@ static const luaL_Reg m[] = {
 		int n = lua_gettop(L);
 		lua_assert(n == 4);
 		(void)n;
-		uint16_t x = (uint16_t)lua_tonumber(L, -1);
-		uint16_t y = (uint16_t)lua_tonumber(L, -2);
-		uint8_t attr = (uint8_t)lua_tonumber(L, -3);
-		const char *str = lua_tostring(L, -4);
+		uint16_t x = (uint16_t)lua_tonumber(L, 1);
+		uint16_t y = (uint16_t)lua_tonumber(L, 2);
+		uint8_t attr = (uint8_t)lua_tonumber(L, 3);
+		const char *str = lua_tostring(L, 4);
+		// printf("%dx%d 0x%2x %s\n", x, y, attr, str);
 		bgfx_dbg_text_printf(x, y, attr, "%s", str);
 		return 0;
 	} },
@@ -285,8 +381,8 @@ static const luaL_Reg m[] = {
 	{ "debug_text_clear", [](lua_State *L) {
 		int n = lua_gettop(L);
 		lua_assert(n >= 0 || n <= 2);
-		uint8_t attr = n >= 1 ? (uint8_t)lua_tonumber(L, -1) : 0;
-		bool small   = n >= 2 ? (bool)lua_toboolean(L, -2) : false;
+		uint8_t attr = n >= 1 ? (uint8_t)lua_tonumber(L, 1) : 0;
+		bool small   = n >= 2 ? (bool)lua_toboolean(L, 2) : false;
 		bgfx_dbg_text_clear(attr, small);
 		return 0;
 	} },
@@ -300,20 +396,21 @@ static const luaL_Reg m[] = {
 	{ "set_debug", [](lua_State *L) {
 		uint32_t debug = 0;
 
-		table_scan(L, -1, [&](const char *, const char *v) {
+		table_scan(L, 1, [&](const char *, const char *v) {
 			auto val = debug_lookup.find(v);
 			if (val != debug_lookup.end()) {
 				debug |= val->second;
 			}
-			return true;
 		});
+
+		debug |= BGFX_DEBUG_STATS;
 
 		bgfx_set_debug(debug);
 
 		return 0;
 	} },
 
-	// bgfx.reset (1280, 720 {
+	// bgfx.reset (1280, 720, {
 	// 	"vsync",
 	// 	"depth_clamp",
 	// 	"srgb_backbuffer",
@@ -324,16 +421,15 @@ static const luaL_Reg m[] = {
 		int n = lua_gettop(L);
 		lua_assert(n == 3);
 		(void)n;
-		int w = (int)lua_tonumber(L, -1);
-		int h = (int)lua_tonumber(L, -2);
+		int w = (int)lua_tonumber(L, 1);
+		int h = (int)lua_tonumber(L, 2);
 		uint32_t reset = 0;
 
-		table_scan(L, -3, [&](const char *, const char *v) {
+		table_scan(L, 3, [&](const char *, const char *v) {
 			auto val = reset_lookup.find(v);
 			if (val != reset_lookup.end()) {
 				reset |= val->second;
 			}
-			return true;
 		});
 
 		bgfx_reset(w, h, reset);
@@ -345,7 +441,7 @@ static const luaL_Reg m[] = {
 		int n = lua_gettop(L);
 		lua_assert(n == 1);
 		(void)n;
-		uint8_t id = (uint8_t)lua_tonumber(L, -1);
+		uint8_t id = (uint8_t)lua_tonumber(L, 1);
 		unsigned int ret = bgfx_touch(id);
 		lua_pushnumber(L, double(ret));
 		return 1;
@@ -370,12 +466,11 @@ static const luaL_Reg m[] = {
 		uint64_t flags = 0;
 		uint32_t rgba = 0;
 
-		table_scan(L, -1, [&](const char *, const char *v) {
+		table_scan(L, 1, [&](const char *, const char *v) {
 			auto val = state_lookup.find(v);
 			if (val != state_lookup.end()) {
 				flags |= val->second;
 			}
-			return true;
 		});
 
 		bgfx_set_state((uint32_t)flags, rgba);
@@ -388,20 +483,20 @@ static const luaL_Reg m[] = {
 	{ "set_view_rect", [](lua_State *L) {
 		int n = lua_gettop(L);
 		lua_assert(n >= 1);
-		uint8_t id = (uint8_t)lua_tonumber(L, -1);
+		uint8_t id = (uint8_t)lua_tonumber(L, 1);
 		uint16_t x = 0;
 		uint16_t y = 0;
 		if (n >= 3) {
-			x = (uint16_t)lua_tonumber(L, -2);
-			y = (uint16_t)lua_tonumber(L, -3);
+			x = (uint16_t)lua_tonumber(L, 2);
+			y = (uint16_t)lua_tonumber(L, 3);
 		}
 		if (n <= 3) {
 			bgfx_set_view_rect_auto(id, x, y, BGFX_BACKBUFFER_RATIO_EQUAL);
 			return 0;
 		}
 		if (n == 5) {
-			uint16_t w = (uint16_t)lua_tonumber(L, -4);
-			uint16_t h = (uint16_t)lua_tonumber(L, -5);
+			uint16_t w = (uint16_t)lua_tonumber(L, 4);
+			uint16_t h = (uint16_t)lua_tonumber(L, 5);
 			bgfx_set_view_rect(id, x, y, w, h);
 		} else {
 			lua_assert(false);
@@ -414,11 +509,11 @@ static const luaL_Reg m[] = {
 		int n = lua_gettop(L);
 		lua_assert(n == 5);
 		(void)n;
-		uint8_t id = (uint8_t)lua_tonumber(L, -1);
-		uint16_t x = (uint16_t)lua_tonumber(L, -2);
-		uint16_t y = (uint16_t)lua_tonumber(L, -3);
-		uint16_t w = (uint16_t)lua_tonumber(L, -4);
-		uint16_t h = (uint16_t)lua_tonumber(L, -5);
+		uint8_t id = (uint8_t)lua_tonumber(L, 1);
+		uint16_t x = (uint16_t)lua_tonumber(L, 2);
+		uint16_t y = (uint16_t)lua_tonumber(L, 3);
+		uint16_t w = (uint16_t)lua_tonumber(L, 4);
+		uint16_t h = (uint16_t)lua_tonumber(L, 5);
 		bgfx_set_view_scissor(id, x, y, w, h);
 		return 0;
 	} },
@@ -427,11 +522,19 @@ static const luaL_Reg m[] = {
 		int n = lua_gettop(L);
 		lua_assert(n == 5);
 		(void)n;
-		uint8_t id = (uint8_t)lua_tonumber(L, -1);
-		uint16_t flags = (uint16_t)lua_tonumber(L, -2);
-		uint32_t rgba = (uint32_t)lua_tonumber(L, -3);
-		float depth = (float)lua_tonumber(L, -4);
-		uint8_t stencil = (uint8_t)lua_tonumber(L, -5);
+		uint8_t id = (uint8_t)lua_tonumber(L, 1);
+
+		uint16_t flags = 0;
+		table_scan(L, 2, [&](const char *, const char *v) {
+			auto val = clear_lookup.find(v);
+			if (val != clear_lookup.end()) {
+				flags |= val->second;
+			}
+		});
+
+		uint32_t rgba = (uint32_t)lua_tonumber(L, 3);
+		float depth = (float)lua_tonumber(L, 4);
+		uint8_t stencil = (uint8_t)lua_tonumber(L, 5);
 		bgfx_set_view_clear(id, flags, rgba, depth, stencil);
 		return 0;
 	} },
@@ -441,8 +544,8 @@ static const luaL_Reg m[] = {
 		int n = lua_gettop(L);
 		lua_assert(n == 2);
 		(void)n;
-		uint8_t id = (uint8_t)lua_tonumber(L, -1);
-		const char *name = lua_tostring(L, -2);
+		uint8_t id = (uint8_t)lua_tonumber(L, 1);
+		const char *name = lua_tostring(L, 2);
 		bgfx_set_view_name(id, name);
 		return 0;
 	} },
@@ -453,15 +556,15 @@ static const luaL_Reg m[] = {
 		int n = lua_gettop(L);
 		lua_assert(n == 4);
 		(void)n;
-		uint8_t id = (uint8_t)lua_tonumber(L, -1);
-		bgfx_program_handle_t *program = to_program_ud(L, -2);
+		uint8_t id = (uint8_t)lua_tonumber(L, 1);
+		bgfx_program_handle_t *program = to_program_ud(L, 2);
 		int32_t depth = 0;
 		bool preserve_state = false;
 		if (n >= 3) {
-			depth = (int32_t)lua_tonumber(L, -3);
+			depth = (int32_t)lua_tonumber(L, 3);
 		}
 		if (n >= 4) {
-			preserve_state = lua_toboolean(L, -4) ? true : false;
+			preserve_state = lua_toboolean(L, 4) ? true : false;
 		}
 		uint32_t r = bgfx_submit(id, *program, depth, preserve_state);
 		lua_pushnumber(L, r);
@@ -485,9 +588,9 @@ static const luaL_Reg m[] = {
 		lua_assert(n == 3);
 		(void)n;
 
-		bgfx_vertex_buffer_handle_t* handle = to_vertex_buffer_ud(L, -1);
-		int start = (int)lua_tonumber(L, -2);
-		int num = (int)lua_tonumber(L, -3);
+		bgfx_vertex_buffer_handle_t* handle = to_vertex_buffer_ud(L, 1);
+		int start = (int)lua_tonumber(L, 2);
+		int num = (int)lua_tonumber(L, 3);
 
 		bgfx_set_vertex_buffer(*handle, start, num);
 		return 0;
@@ -499,9 +602,9 @@ static const luaL_Reg m[] = {
 		lua_assert(n == 3);
 		(void)n;
 
-		bgfx_index_buffer_handle_t* handle = to_index_buffer_ud(L, -1);
-		int first = (int)lua_tonumber(L, -2);
-		int num = (int)lua_tonumber(L, -3);
+		bgfx_index_buffer_handle_t* handle = to_index_buffer_ud(L, 1);
+		int first = (int)lua_tonumber(L, 2);
+		int num = (int)lua_tonumber(L, 3);
 		bgfx_set_index_buffer(*handle, first, num);
 		return 0;
 	} },

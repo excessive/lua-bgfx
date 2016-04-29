@@ -17,9 +17,6 @@ end
 
 project "BGFX" do
 	targetname "bgfx_s"
-	if _OPTIONS["force-gl3"] then
-		defines { "BGFX_CONFIG_RENDERER_OPENGL=33" }
-	end
 	kind "StaticLib"
 	language "C++"
 	local OVR_DIR = "LibOVR"
@@ -35,29 +32,26 @@ project "BGFX" do
 	}
 	files {
 		path.join(BGFX_SRC_DIR, "bgfx.cpp"),
+		path.join(BGFX_SRC_DIR, "debug_renderdoc.cpp"),
 		path.join(BGFX_SRC_DIR, "glcontext_egl.cpp"),
 		path.join(BGFX_SRC_DIR, "glcontext_glx.cpp"),
 		path.join(BGFX_SRC_DIR, "glcontext_ppapi.cpp"),
-		path.join(BGFX_SRC_DIR, "image.cpp"),
-		path.join(BGFX_SRC_DIR, "shader.cpp"),
-		path.join(BGFX_SRC_DIR, "topology.cpp"),
-		path.join(BGFX_SRC_DIR, "hmd_ovr.cpp"),
-		path.join(BGFX_SRC_DIR, "hmd_openvr.cpp"),
-		path.join(BGFX_SRC_DIR, "debug_renderdoc.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_null.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_gl.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_vk.cpp"),
-		path.join(BGFX_SRC_DIR, "shader_spirv.cpp"),
-		path.join(BGFX_SRC_DIR, "vertexdecl.cpp")
-	}
-	configuration {"windows"}
-	files {
 		path.join(BGFX_SRC_DIR, "glcontext_wgl.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_d3d9.cpp"),
+		path.join(BGFX_SRC_DIR, "hmd_openvr.cpp"),
+		path.join(BGFX_SRC_DIR, "hmd_ovr.cpp"),
+		path.join(BGFX_SRC_DIR, "image.cpp"),
 		path.join(BGFX_SRC_DIR, "renderer_d3d11.cpp"),
 		path.join(BGFX_SRC_DIR, "renderer_d3d12.cpp"),
-		path.join(BGFX_SRC_DIR, "shader_dxbc.cpp"),
+		path.join(BGFX_SRC_DIR, "renderer_d3d9.cpp"),
+		path.join(BGFX_SRC_DIR, "renderer_gl.cpp"),
+		path.join(BGFX_SRC_DIR, "renderer_null.cpp"),
+		path.join(BGFX_SRC_DIR, "renderer_vk.cpp"),
 		path.join(BGFX_SRC_DIR, "shader_dx9bc.cpp"),
+		path.join(BGFX_SRC_DIR, "shader_dxbc.cpp"),
+		path.join(BGFX_SRC_DIR, "shader_spirv.cpp"),
+		path.join(BGFX_SRC_DIR, "shader.cpp"),
+		path.join(BGFX_SRC_DIR, "topology.cpp"),
+		path.join(BGFX_SRC_DIR, "vertexdecl.cpp")
 	}
 	configuration {"vs*"}
 	if os.isdir(OVR_DIR) then
@@ -78,7 +72,7 @@ project "BGFX" do
 	}
 	configuration {"gmake"}
 	buildoptions {
-		"-fpic"
+		"-fpic",
 	}
 end
 
@@ -93,11 +87,12 @@ project "lua-bgfx" do
 	}
 
 	links {
-		"BGFX",
+		"BGFX"
 	}
 
 	includedirs {
-		"extern/bgfx/include"
+		"extern/bgfx/include",
+		"extern/bx/include"
 	}
 
 	configuration {"vs*"}
@@ -119,7 +114,11 @@ project "lua-bgfx" do
 	}
 	links {
 		"luajit-5.1",
-		"GL"
+		"GL",
+		"SDL2"
+	}
+	linkoptions {
+		"-pthread"
 	}
 
 	configuration {"gmake"}
