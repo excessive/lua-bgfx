@@ -38,23 +38,26 @@ project "BGFX" do
 		path.join(BGFX_SRC_DIR, "glcontext_egl.cpp"),
 		path.join(BGFX_SRC_DIR, "glcontext_glx.cpp"),
 		path.join(BGFX_SRC_DIR, "glcontext_ppapi.cpp"),
-		path.join(BGFX_SRC_DIR, "glcontext_wgl.cpp"),
 		path.join(BGFX_SRC_DIR, "image.cpp"),
 		path.join(BGFX_SRC_DIR, "shader.cpp"),
 		path.join(BGFX_SRC_DIR, "topology.cpp"),
 		path.join(BGFX_SRC_DIR, "hmd_ovr.cpp"),
 		path.join(BGFX_SRC_DIR, "hmd_openvr.cpp"),
 		path.join(BGFX_SRC_DIR, "debug_renderdoc.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_d3d9.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_d3d11.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_d3d12.cpp"),
 		path.join(BGFX_SRC_DIR, "renderer_null.cpp"),
 		path.join(BGFX_SRC_DIR, "renderer_gl.cpp"),
 		path.join(BGFX_SRC_DIR, "renderer_vk.cpp"),
-		path.join(BGFX_SRC_DIR, "shader_dxbc.cpp"),
-		path.join(BGFX_SRC_DIR, "shader_dx9bc.cpp"),
 		path.join(BGFX_SRC_DIR, "shader_spirv.cpp"),
 		path.join(BGFX_SRC_DIR, "vertexdecl.cpp")
+	}
+	configuration {"windows"}
+	files {
+		path.join(BGFX_SRC_DIR, "glcontext_wgl.cpp"),
+		path.join(BGFX_SRC_DIR, "renderer_d3d9.cpp"),
+		path.join(BGFX_SRC_DIR, "renderer_d3d11.cpp"),
+		path.join(BGFX_SRC_DIR, "renderer_d3d12.cpp"),
+		path.join(BGFX_SRC_DIR, "shader_dxbc.cpp"),
+		path.join(BGFX_SRC_DIR, "shader_dx9bc.cpp"),
 	}
 	configuration {"vs*"}
 	if os.isdir(OVR_DIR) then
