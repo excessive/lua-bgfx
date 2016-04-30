@@ -391,7 +391,7 @@ static std::map<const char*, uint32_t, fuck_off_cpp> stencil_lookup = {
 	//{ "func_rmask", BGFX_STENCIL_FUNC_RMASK }
 };
 
-static std::map<const char*, uint32_t, fuck_off_cpp> submit_lookup = {
+static std::map<const char*, uint32_t, fuck_off_cpp> submit_eye_lookup = {
 	{ "left",  BGFX_SUBMIT_EYE_LEFT },
 	{ "right", BGFX_SUBMIT_EYE_RIGHT },
 	{ "first", BGFX_SUBMIT_EYE_FIRST }
