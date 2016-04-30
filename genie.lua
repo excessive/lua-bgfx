@@ -53,11 +53,14 @@ project "BGFX" do
 		path.join(BGFX_SRC_DIR, "topology.cpp"),
 		path.join(BGFX_SRC_DIR, "vertexdecl.cpp")
 	}
+	defines {
+		-- this was causing crashes on some systems.
+		"BGFX_CONFIG_MULTITHREADED=0"
+	}
 	configuration {"vs*"}
 	if os.isdir(OVR_DIR) then
 		defines {
 			"BGFX_CONFIG_USE_OVR=1",
-			"BGFX_CONFIG_MULTITHREADED=0"
 		}
 		link_ovr()
 	end
