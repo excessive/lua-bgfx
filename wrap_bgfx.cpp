@@ -11,6 +11,7 @@ extern "C" {
 #include <bgfx/c99/bgfxplatform.h>
 }
 
+#include <cstring>
 #include <map>
 
 static bgfx_shader_handle_t *to_shader_ud(lua_State *L, int index) {
@@ -151,8 +152,6 @@ static const luaL_Reg index_buffer_fn[] = {
 	{ NULL, NULL }
 };
 
-#include <cstring>
-
 struct fuck_off_cpp {
 	bool operator() (char const *a, char const *b) {
 		return std::strcmp(a, b) < 0;
@@ -202,10 +201,11 @@ static std::map<const char*, uint32_t, fuck_off_cpp> caps_lookup = {
 };
 
 static std::map<const char*, uint32_t, fuck_off_cpp> clear_lookup = {
-	{ "none", BGFX_CLEAR_NONE },
-	{ "color", BGFX_CLEAR_COLOR },
-	{ "depth", BGFX_CLEAR_DEPTH },
+	{ "none",    BGFX_CLEAR_NONE },
+	{ "color",   BGFX_CLEAR_COLOR },
+	{ "depth",   BGFX_CLEAR_DEPTH },
 	{ "stencil", BGFX_CLEAR_STENCIL },
+
 	{ "discard_color_0", BGFX_CLEAR_DISCARD_COLOR_0 },
 	{ "discard_color_1", BGFX_CLEAR_DISCARD_COLOR_1 },
 	{ "discard_color_2", BGFX_CLEAR_DISCARD_COLOR_2 },
@@ -214,8 +214,17 @@ static std::map<const char*, uint32_t, fuck_off_cpp> clear_lookup = {
 	{ "discard_color_5", BGFX_CLEAR_DISCARD_COLOR_5 },
 	{ "discard_color_6", BGFX_CLEAR_DISCARD_COLOR_6 },
 	{ "discard_color_7", BGFX_CLEAR_DISCARD_COLOR_7 },
-	{ "discard_depth", BGFX_CLEAR_DISCARD_DEPTH },
+	{ "discard_depth",   BGFX_CLEAR_DISCARD_DEPTH },
 	{ "discard_stencil", BGFX_CLEAR_DISCARD_STENCIL }
+};
+
+static std::map<const char*, uint32_t, fuck_off_cpp> cube_map_lookup = {
+	{ "positive_x", BGFX_CUBE_MAP_POSITIVE_X },
+	{ "negative_x", BGFX_CUBE_MAP_NEGATIVE_X },
+	{ "positive_y", BGFX_CUBE_MAP_POSITIVE_Y },
+	{ "negative_y", BGFX_CUBE_MAP_NEGATIVE_Y },
+	{ "positive_z", BGFX_CUBE_MAP_POSITIVE_Z },
+	{ "negative_z", BGFX_CUBE_MAP_NEGATIVE_Z }
 };
 
 static std::map<const char*, uint32_t, fuck_off_cpp> debug_lookup = {
