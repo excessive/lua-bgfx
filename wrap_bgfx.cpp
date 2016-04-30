@@ -192,7 +192,7 @@ static std::map<const char*, uint32_t, fuck_off_cpp> reset_lookup = {
 	{ "msaa_x8",            BGFX_RESET_MSAA_X8 },
 	{ "msaa_x16",           BGFX_RESET_MSAA_X16 },
 	{ "vsync",              BGFX_RESET_VSYNC },
-	{ "maxanisotropy",      BGFX_RESET_MAXANISOTROPY },
+	{ "max_anisotropy",     BGFX_RESET_MAXANISOTROPY },
 	{ "capture",            BGFX_RESET_CAPTURE },
 	{ "hmd",                BGFX_RESET_HMD },
 	{ "hmd_debug",          BGFX_RESET_HMD_DEBUG },
@@ -247,8 +247,8 @@ static std::map<const char*, uint32_t, fuck_off_cpp> state_lookup = {
 	{ "pt_linestrip", BGFX_STATE_PT_LINESTRIP },
 	{ "pt_points",    BGFX_STATE_PT_POINTS },
 
-	{ "msaa",   BGFX_STATE_MSAA },
-	{ "lineaa", BGFX_STATE_LINEAA },
+	{ "msaa",    BGFX_STATE_MSAA },
+	{ "line_aa", BGFX_STATE_LINEAA },
 	{ "conservative_raster", BGFX_STATE_CONSERVATIVE_RASTER },
 
 	{ "blend_add",         BGFX_STATE_BLEND_ADD },
@@ -587,6 +587,68 @@ static const luaL_Reg m[] = {
 		// bgfx_set_transform(mtx, num);
 		return 0;
 	} },
+
+	{ "new_vertex_format", [](lua_State *L) {
+		bgfx_vertex_decl_t *decl = new bgfx_vertex_decl_t();
+		bgfx_renderer_type_t renderer = bgfx_get_renderer_type();
+		bgfx_vertex_decl_begin(decl, renderer);
+
+	   //  "position"
+	   //  "normal"
+	   //  "tangent"
+	   //  "bitangent"
+	   //  "color0"
+	   //  "color1"
+	   //  "indices"
+	   //  "weight"
+	   //  "texcoord0"
+	   //  "texcoord1"
+	   //  "texcoord2"
+	   //  "texcoord3"
+	   //  "texcoord4"
+	   //  "texcoord5"
+	   //  "texcoord6"
+	   //  "texcoord7"
+
+	   //  "type_uint8"
+	   //  "type_uint10"
+	   //  "type_int16"
+	   //  "type_half"
+	   //  "type_float"
+
+		table_scan(L, -1, [&](const char *, const char *) {
+			bgfx_attrib_t attrib    = BGFX_ATTRIB_POSITION;
+			bgfx_attrib_type_t type = BGFX_ATTRIB_TYPE_FLOAT;
+			uint8_t size            = 1;
+			bool normalized         = false;
+			bool as_int             = false;
+
+			table_scan(L, -2, [&](const char *k, const char *v) {
+				std::string key = std::string(k);
+
+ 				if (key == "type") {
+					// str2type(v);
+					return;
+				} else if (key == "attrib") {
+					// str2attrib(v);
+					return;
+				} else if (key == "num") {
+					size = (uint8_t)atoi(v);
+					return;
+				}
+			});
+
+			bgfx_vertex_decl_add(decl, attrib, size, type, normalized, as_int);
+		});
+
+
+		bgfx_vertex_decl_end(decl);
+
+		// TODO: return userdata
+		delete decl;
+
+		return 0;
+	}},
 
 	// bgfx.set_vertex_buffer(vb, 0, 32)
 	{ "set_vertex_buffer", [](lua_State *L) {

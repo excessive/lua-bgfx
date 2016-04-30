@@ -3,6 +3,10 @@ package.cpath = package.cpath .. ";./bin/?.so"
 
 local bgfx = require "bgfx"
 
+require "love"
+require "love.filesystem"
+love.filesystem.init(arg[0])
+
 bgfx.init(true)
 bgfx.reset(1280, 720, { "vsync" })
 bgfx.set_debug { "text" }
@@ -12,6 +16,10 @@ bgfx.set_debug { "text" }
 -- for k, v in pairs(hmd) do
 -- 	print(k, v)
 -- end
+
+local fmt = bgfx.new_vertex_format {
+	{ attrib = "position", type = "float", num = 3 }
+}
 
 bgfx.set_view_clear(0, { "color", "depth" }, 0x303030ff, 1.0, 0)
 bgfx.set_view_name(0, "igor");
