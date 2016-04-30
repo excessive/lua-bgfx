@@ -159,6 +159,48 @@ struct fuck_off_cpp {
 	}
 };
 
+static std::map<const char*, uint32_t, fuck_off_cpp> caps_lookup = {
+	{ "texture_compare_lequal", BGFX_CAPS_TEXTURE_COMPARE_LEQUAL },
+	{ "texture_compare_all",    BGFX_CAPS_TEXTURE_COMPARE_ALL },
+
+	{ "vertex_attrib_half",   BGFX_CAPS_VERTEX_ATTRIB_HALF },
+	{ "vertex_attrib_uint10", BGFX_CAPS_VERTEX_ATTRIB_UINT10 },
+
+	{ "texture_3d",              BGFX_CAPS_TEXTURE_3D },
+	{ "instancing",              BGFX_CAPS_INSTANCING },
+	{ "renderer_multithreading", BGFX_CAPS_RENDERER_MULTITHREADED },
+	{ "fragment_depth",          BGFX_CAPS_FRAGMENT_DEPTH },
+	{ "blend_independent",       BGFX_CAPS_BLEND_INDEPENDENT },
+	{ "compute",                 BGFX_CAPS_COMPUTE },
+	{ "fragment_ordering",       BGFX_CAPS_FRAGMENT_ORDERING },
+	{ "swap_chain",              BGFX_CAPS_SWAP_CHAIN },
+	{ "hmd",                     BGFX_CAPS_HMD },
+	{ "index32",                 BGFX_CAPS_INDEX32 },
+	{ "draw_indirect",           BGFX_CAPS_DRAW_INDIRECT },
+	{ "hidpi",                   BGFX_CAPS_HIDPI },
+	{ "texture_blit",            BGFX_CAPS_TEXTURE_BLIT },
+	{ "texture_read_back",       BGFX_CAPS_TEXTURE_READ_BACK },
+	{ "occlusion_query",         BGFX_CAPS_OCCLUSION_QUERY },
+	{ "alpha_to_converge",       BGFX_CAPS_ALPHA_TO_COVERAGE },
+	{ "conservative_raster",     BGFX_CAPS_CONSERVATIVE_RASTER },
+
+	{ "format_texture_none",             BGFX_CAPS_FORMAT_TEXTURE_NONE },
+	{ "format_texture_2d",               BGFX_CAPS_FORMAT_TEXTURE_2D },
+	{ "format_texture_2d_srgb",          BGFX_CAPS_FORMAT_TEXTURE_2D_SRGB },
+	{ "format_texture_2d_emulated",      BGFX_CAPS_FORMAT_TEXTURE_2D_EMULATED },
+	{ "format_texture_3d",               BGFX_CAPS_FORMAT_TEXTURE_3D },
+	{ "format_texture_3d_srgb",          BGFX_CAPS_FORMAT_TEXTURE_3D_SRGB },
+	{ "format_texture_3d_emulated",      BGFX_CAPS_FORMAT_TEXTURE_3D_EMULATED },
+	{ "format_texture_cube",             BGFX_CAPS_FORMAT_TEXTURE_CUBE },
+	{ "format_texture_cube_srgb",        BGFX_CAPS_FORMAT_TEXTURE_CUBE_SRGB },
+	{ "format_texture_cube_emulated",    BGFX_CAPS_FORMAT_TEXTURE_CUBE_EMULATED },
+	{ "format_texture_vertex",           BGFX_CAPS_FORMAT_TEXTURE_VERTEX },
+	{ "format_texture_image",            BGFX_CAPS_FORMAT_TEXTURE_IMAGE },
+	{ "format_texture_framebuffer",      BGFX_CAPS_FORMAT_TEXTURE_FRAMEBUFFER },
+	{ "format_texture_framebuffer_msaa", BGFX_CAPS_FORMAT_TEXTURE_FRAMEBUFFER_MSAA },
+	{ "format_texture_msaa",             BGFX_CAPS_FORMAT_TEXTURE_MSAA }
+};
+
 static std::map<const char*, uint32_t, fuck_off_cpp> clear_lookup = {
 	{ "none", BGFX_CLEAR_NONE },
 	{ "color", BGFX_CLEAR_COLOR },
@@ -261,6 +303,7 @@ static std::map<const char*, uint32_t, fuck_off_cpp> state_lookup = {
 	{ "blend_linear_burn", BGFX_STATE_BLEND_LINEAR_BURN }
 };
 
+// incomplete: doesn't include the macro function stuff
 static std::map<const char*, uint32_t, fuck_off_cpp> texture_lookup = {
 	{ "none", BGFX_TEXTURE_NONE },
 
@@ -298,9 +341,10 @@ static std::map<const char*, uint32_t, fuck_off_cpp> texture_lookup = {
 	{ "compare_always",   BGFX_TEXTURE_COMPARE_ALWAYS },
 	{ "compute_write",    BGFX_TEXTURE_COMPUTE_WRITE },
 
-	{ "srgb",      BGFX_TEXTURE_SRGB },
-	{ "blit_dst",  BGFX_TEXTURE_BLIT_DST },
-	{ "read_back", BGFX_TEXTURE_READ_BACK }
+	{ "srgb",         BGFX_TEXTURE_SRGB },
+	{ "blit_dst",     BGFX_TEXTURE_BLIT_DST },
+	{ "read_back",    BGFX_TEXTURE_READ_BACK }//,
+	//{ "border_color", BGFX_TEXTURE_BORDER_COLOR }
 };
 
 static void stack_dump(lua_State *L) {
