@@ -47,9 +47,9 @@ static bgfx_vertex_buffer_handle_t *to_vertex_buffer_ud(lua_State *L, int index)
 }
 
 static bgfx_index_buffer_handle_t *to_index_buffer_ud(lua_State *L, int index) {
-	bgfx_index_buffer_handle_t **ud = (bgfx_index_buffer_handle_t**)lua_touserdata(L, index);
+	bgfx_index_buffer_handle_t *ud = (bgfx_index_buffer_handle_t*)lua_touserdata(L, index);
 	if (ud == NULL) luaL_typerror(L, index, "bgfx_index_buffer");
-	return *ud;
+	return ud;
 }
 
 static const luaL_Reg shader_fn[] = {
@@ -137,19 +137,6 @@ static const luaL_Reg vertex_buffer_fn[] = {
 };
 
 static const luaL_Reg index_buffer_fn[] = {
-	{ "new", [](lua_State *L) {
-		bgfx_index_buffer_handle_t **ud = (bgfx_index_buffer_handle_t**)lua_newuserdata(L, sizeof(bgfx_index_buffer_handle_t*));
-
-		lua_assert(ud != NULL);
-		const bgfx_memory_t *mem = NULL;
-		uint16_t flags = 0;
-
-		*(*ud) = bgfx_create_index_buffer(mem, flags);
-
-		luaL_getmetatable(L, "bgfx_index_buffer");
-		lua_setmetatable(L, -2);
-		return 1;
-	} },
 	{ "__gc",  [](lua_State *L) {
 		bgfx_index_buffer_handle_t *ud = to_index_buffer_ud(L, 1);
 		bgfx_destroy_index_buffer(*ud);
@@ -881,6 +868,29 @@ static const luaL_Reg m[] = {
 		return 1;
 	} },
 
+	{ "new_index_buffer", [](lua_State *L) {
+		int vertices = lua_objlen(L, -1);
+		const bgfx_memory_t *mem = bgfx_alloc(sizeof(uint16_t) * vertices);
+		uint16_t* data = (uint16_t*)mem;
+
+		for (int i=1; ; i++) {
+			lua_rawgeti(L, -1, i);
+			if (lua_isnil(L,-1)) {
+				lua_pop(L, 1);
+				break;
+			}
+			data[i-1] = (uint16_t)luaL_checkinteger(L, -1);
+			lua_pop(L,1);
+		}
+
+		bgfx_index_buffer_handle_t *ud = (bgfx_index_buffer_handle_t*)lua_newuserdata(L, sizeof(bgfx_index_buffer_handle_t));
+		*ud = bgfx_create_index_buffer(mem, 0);
+
+		luaL_getmetatable(L, "bgfx_index_buffer");
+		lua_setmetatable(L, -2);
+		return 1;
+	} },
+
 	// bgfx.set_vertex_buffer(vb, 0, 32)
 	{ "set_vertex_buffer", [](lua_State *L) {
 		int n = lua_gettop(L);
@@ -905,6 +915,11 @@ static const luaL_Reg m[] = {
 		int first = (int)lua_tonumber(L, 2);
 		int num = (int)lua_tonumber(L, 3);
 		bgfx_set_index_buffer(*handle, first, num);
+		return 0;
+	} },
+
+	{ "discard", [](lua_State *L) {
+		bgfx_discard();
 		return 0;
 	} },
 
