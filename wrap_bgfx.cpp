@@ -313,6 +313,51 @@ static std::map<const char*, uint32_t, fuck_off_cpp> state_lookup = {
 };
 
 // incomplete: doesn't include the macro function stuff
+static std::map<const char*, uint32_t, fuck_off_cpp> stencil_lookup = {
+	{ "test_less",     BGFX_STENCIL_TEST_LESS },
+	{ "test_lequal",   BGFX_STENCIL_TEST_LEQUAL },
+	{ "test_equal",    BGFX_STENCIL_TEST_EQUAL },
+	{ "test_gequal",   BGFX_STENCIL_TEST_GEQUAL },
+	{ "test_greater",  BGFX_STENCIL_TEST_GREATER },
+	{ "test_notequal", BGFX_STENCIL_TEST_NOTEQUAL },
+	{ "test_never",    BGFX_STENCIL_TEST_NEVER },
+	{ "test_always",   BGFX_STENCIL_TEST_ALWAYS },
+
+	{ "op_fail_s_zero",    BGFX_STENCIL_OP_FAIL_S_ZERO },
+	{ "op_fail_s_keep",    BGFX_STENCIL_OP_FAIL_S_KEEP },
+	{ "op_fail_s_replace", BGFX_STENCIL_OP_FAIL_S_REPLACE },
+	{ "op_fail_s_incr",    BGFX_STENCIL_OP_FAIL_S_INCR },
+	{ "op_fail_s_incrsat", BGFX_STENCIL_OP_FAIL_S_INCRSAT },
+	{ "op_fail_s_decr",    BGFX_STENCIL_OP_FAIL_S_DECR },
+	{ "op_fail_s_decrsat", BGFX_STENCIL_OP_FAIL_S_DECRSAT },
+	{ "op_fail_s_invert",  BGFX_STENCIL_OP_FAIL_S_INVERT },
+
+	{ "op_fail_z_zero",    BGFX_STENCIL_OP_FAIL_Z_ZERO },
+	{ "op_fail_z_keep",    BGFX_STENCIL_OP_FAIL_Z_KEEP },
+	{ "op_fail_z_replace", BGFX_STENCIL_OP_FAIL_Z_REPLACE },
+	{ "op_fail_z_incr",    BGFX_STENCIL_OP_FAIL_Z_INCR },
+	{ "op_fail_z_incrsat", BGFX_STENCIL_OP_FAIL_Z_INCRSAT },
+	{ "op_fail_z_decr",    BGFX_STENCIL_OP_FAIL_Z_DECR },
+	{ "op_fail_z_decrsat", BGFX_STENCIL_OP_FAIL_Z_DECRSAT },
+	{ "op_fail_z_invert",  BGFX_STENCIL_OP_FAIL_Z_INVERT },
+
+	{ "op_pass_z_zero",    BGFX_STENCIL_OP_PASS_Z_ZERO },
+	{ "op_pass_z_keep",    BGFX_STENCIL_OP_PASS_Z_KEEP },
+	{ "op_pass_z_replace", BGFX_STENCIL_OP_PASS_Z_REPLACE },
+	{ "op_pass_z_incr",    BGFX_STENCIL_OP_PASS_Z_INCR },
+	{ "op_pass_z_incrsat", BGFX_STENCIL_OP_PASS_Z_INCRSAT },
+	{ "op_pass_z_decr",    BGFX_STENCIL_OP_PASS_Z_DECR },
+	{ "op_pass_z_decrsat", BGFX_STENCIL_OP_PASS_Z_DECRSAT },
+	{ "op_pass_z_invert",  BGFX_STENCIL_OP_PASS_Z_INVERT },
+
+	{ "none",    BGFX_STENCIL_NONE },
+	{ "default", BGFX_STENCIL_DEFAULT }//,
+
+	//{ "func_ref",   BGFX_STENCIL_FUNC_REF },
+	//{ "func_rmask", BGFX_STENCIL_FUNC_RMASK }
+};
+
+// incomplete: doesn't include the macro function stuff
 static std::map<const char*, uint32_t, fuck_off_cpp> texture_lookup = {
 	{ "none", BGFX_TEXTURE_NONE },
 
