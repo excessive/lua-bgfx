@@ -247,8 +247,8 @@ static std::map<const char*, uint32_t, fuck_off_cpp> state_lookup = {
 	{ "pt_linestrip", BGFX_STATE_PT_LINESTRIP },
 	{ "pt_points",    BGFX_STATE_PT_POINTS },
 
-	{ "msaa",    BGFX_STATE_MSAA },
-	{ "line_aa", BGFX_STATE_LINEAA },
+	{ "msaa",                BGFX_STATE_MSAA },
+	{ "line_aa",             BGFX_STATE_LINEAA },
 	{ "conservative_raster", BGFX_STATE_CONSERVATIVE_RASTER },
 
 	{ "blend_add",         BGFX_STATE_BLEND_ADD },
@@ -259,6 +259,48 @@ static std::map<const char*, uint32_t, fuck_off_cpp> state_lookup = {
 	{ "blend_normal",      BGFX_STATE_BLEND_NORMAL },
 	{ "blend_screen",      BGFX_STATE_BLEND_SCREEN },
 	{ "blend_linear_burn", BGFX_STATE_BLEND_LINEAR_BURN }
+};
+
+static std::map<const char*, uint32_t, fuck_off_cpp> texture_lookup = {
+	{ "none", BGFX_TEXTURE_NONE },
+
+	{ "u_mirror", BGFX_TEXTURE_U_MIRROR },
+	{ "u_clamp",  BGFX_TEXTURE_U_CLAMP },
+	{ "u_border", BGFX_TEXTURE_U_BORDER },
+	{ "v_mirror", BGFX_TEXTURE_V_MIRROR },
+	{ "v_clamp",  BGFX_TEXTURE_V_CLAMP },
+	{ "v_border", BGFX_TEXTURE_V_BORDER },
+	{ "w_mirror", BGFX_TEXTURE_W_MIRROR },
+	{ "w_clamp",  BGFX_TEXTURE_W_CLAMP },
+	{ "w_border", BGFX_TEXTURE_W_BORDER },
+
+	{ "min_point",       BGFX_TEXTURE_MIN_POINT },
+	{ "min_anisotropic", BGFX_TEXTURE_MIN_ANISOTROPIC },
+	{ "mag_point",       BGFX_TEXTURE_MAG_POINT },
+	{ "mag_anisotropic", BGFX_TEXTURE_MAG_ANISOTROPIC },
+	{ "mip_point",       BGFX_TEXTURE_MIP_POINT },
+
+	{ "msaa_sample",   BGFX_TEXTURE_MSAA_SAMPLE },
+	{ "rt",            BGFX_TEXTURE_RT },
+	{ "rt_msaa_x2",    BGFX_TEXTURE_RT_MSAA_X2 },
+	{ "rt_msaa_x4",    BGFX_TEXTURE_RT_MSAA_X4 },
+	{ "rt_msaa_x8",    BGFX_TEXTURE_RT_MSAA_X8 },
+	{ "rt_msaa_x16",   BGFX_TEXTURE_RT_MSAA_X16 },
+	{ "rt_write_only", BGFX_TEXTURE_RT_WRITE_ONLY },
+
+	{ "compare_less",     BGFX_TEXTURE_COMPARE_LESS },
+	{ "compare_lequal",   BGFX_TEXTURE_COMPARE_LEQUAL },
+	{ "compare_equal",    BGFX_TEXTURE_COMPARE_EQUAL },
+	{ "compare_gequal",   BGFX_TEXTURE_COMPARE_GEQUAL },
+	{ "compare_greater",  BGFX_TEXTURE_COMPARE_GREATER },
+	{ "compare_notequal", BGFX_TEXTURE_COMPARE_NOTEQUAL },
+	{ "compare_never",    BGFX_TEXTURE_COMPARE_NEVER },
+	{ "compare_always",   BGFX_TEXTURE_COMPARE_ALWAYS },
+	{ "compute_write",    BGFX_TEXTURE_COMPUTE_WRITE },
+
+	{ "srgb",      BGFX_TEXTURE_SRGB },
+	{ "blit_dst",  BGFX_TEXTURE_BLIT_DST },
+	{ "read_back", BGFX_TEXTURE_READ_BACK }
 };
 
 static void stack_dump(lua_State *L) {
