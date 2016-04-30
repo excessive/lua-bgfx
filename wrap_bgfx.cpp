@@ -458,6 +458,21 @@ static std::map<const char*, uint32_t, fuck_off_cpp> view_lookup = {
 	{ "stereo", BGFX_VIEW_STEREO }
 };
 
+const char *renderer2str(bgfx_renderer_type_t t) {
+	switch(t) {
+		case BGFX_RENDERER_TYPE_DIRECT3D9:  return "d3d9";
+		case BGFX_RENDERER_TYPE_DIRECT3D11: return "d3d11";
+		case BGFX_RENDERER_TYPE_DIRECT3D12: return "d3d12";
+		case BGFX_RENDERER_TYPE_METAL:      return "metal";
+		case BGFX_RENDERER_TYPE_OPENGLES:   return "opengles";
+		case BGFX_RENDERER_TYPE_OPENGL:     return "opengl";
+		case BGFX_RENDERER_TYPE_VULKAN:     return "vulkan";
+		case BGFX_RENDERER_TYPE_NULL:       return "null";
+		default: break;
+	}
+	return "invalid";
+}
+
 static void stack_dump(lua_State *L) {
 	int i = lua_gettop(L);
 	int m = i;
@@ -910,6 +925,22 @@ static const luaL_Reg m[] = {
 		// TODO: populate eye fields
 		lua_pushstring(L, "eye");
 		lua_pushnil(L);
+		lua_settable(L, -3);
+
+		return 1;
+	} },
+
+	{ "get_renderer_info", [](lua_State *L) {
+		bgfx_renderer_type_t t = bgfx_get_renderer_type();
+
+		lua_newtable(L);
+
+		lua_pushstring(L, "name");
+		lua_pushstring(L, bgfx_get_renderer_name(t));
+		lua_settable(L, -3);
+
+		lua_pushstring(L, "type");
+		lua_pushstring(L, renderer2str(t));
 		lua_settable(L, -3);
 
 		return 1;
