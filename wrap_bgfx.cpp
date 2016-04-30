@@ -912,20 +912,25 @@ static const luaL_Reg m[] = {
 	{ "get_hmd", [](lua_State *L) {
 		const bgfx_hmd_t *hmd = bgfx_get_hmd();
 
-		lua_createtable(L, 0, 4);
+		if (hmd) {
+			lua_createtable(L, 0, 4);
 
-		lua_pushstring(L, "width");
-		lua_pushnumber(L, hmd->width);
-		lua_settable(L, -3);
+			lua_pushstring(L, "width");
+			lua_pushnumber(L, hmd->width);
+			lua_settable(L, -3);
 
-		lua_pushstring(L, "height");
-		lua_pushnumber(L, hmd->height);
-		lua_settable(L, -3);
+			lua_pushstring(L, "height");
+			lua_pushnumber(L, hmd->height);
+			lua_settable(L, -3);
 
-		// TODO: populate eye fields
-		lua_pushstring(L, "eye");
-		lua_pushnil(L);
-		lua_settable(L, -3);
+			// TODO: populate eye fields
+			lua_pushstring(L, "eye");
+			lua_pushnil(L);
+			lua_settable(L, -3);
+			return 1;
+		}
+
+		lua_pushboolean(L, 0);
 
 		return 1;
 	} },
