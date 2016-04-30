@@ -158,6 +158,34 @@ struct fuck_off_cpp {
 	}
 };
 
+// incomplete: doesn't include the macro function stuff
+static std::map<const char*, uint32_t, fuck_off_cpp> buffer_lookup = {
+	{ "none", BGFX_BUFFER_NONE },
+
+	{ "compute_format_8x1",  BGFX_BUFFER_COMPUTE_FORMAT_8x1 },
+	{ "compute_format_8x2",  BGFX_BUFFER_COMPUTE_FORMAT_8x2 },
+	{ "compute_format_8x4",  BGFX_BUFFER_COMPUTE_FORMAT_8x4 },
+	{ "compute_format_16x1", BGFX_BUFFER_COMPUTE_FORMAT_16x1 },
+	{ "compute_format_16x2", BGFX_BUFFER_COMPUTE_FORMAT_16x2 },
+	{ "compute_format_16x4", BGFX_BUFFER_COMPUTE_FORMAT_16x4 },
+	{ "compute_format_32x1", BGFX_BUFFER_COMPUTE_FORMAT_32x1 },
+	{ "compute_format_32x2", BGFX_BUFFER_COMPUTE_FORMAT_32x2 },
+	{ "compute_format_32x4", BGFX_BUFFER_COMPUTE_FORMAT_32x4 },
+
+	{ "compute_type_uint",  BGFX_BUFFER_COMPUTE_TYPE_UINT },
+	{ "compute_type_int",   BGFX_BUFFER_COMPUTE_TYPE_INT },
+	{ "compute_type_float", BGFX_BUFFER_COMPUTE_TYPE_FLOAT },
+
+	{ "compute_read",  BGFX_BUFFER_COMPUTE_READ },
+	{ "compute_write", BGFX_BUFFER_COMPUTE_WRITE },
+
+	{ "draw_indirect", BGFX_BUFFER_DRAW_INDIRECT },
+	{ "allow_resize",  BGFX_BUFFER_ALLOW_RESIZE },
+	{ "index32",       BGFX_BUFFER_INDEX32 }//,
+
+	//{ "compute_read_write", BGFX_BUFFER_COMPUTE_READ_WRITE }
+};
+
 static std::map<const char*, uint32_t, fuck_off_cpp> caps_lookup = {
 	{ "texture_compare_lequal", BGFX_CAPS_TEXTURE_COMPARE_LEQUAL },
 	{ "texture_compare_all",    BGFX_CAPS_TEXTURE_COMPARE_ALL },
