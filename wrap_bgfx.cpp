@@ -138,6 +138,7 @@ static const luaL_Reg vertex_buffer_fn[] = {
 
 static const luaL_Reg index_buffer_fn[] = {
 	{ "__gc",  [](lua_State *L) {
+		printf("gc ib\n");
 		bgfx_index_buffer_handle_t *ud = to_index_buffer_ud(L, 1);
 		bgfx_destroy_index_buffer(*ud);
 		return 0;
@@ -854,7 +855,7 @@ static const luaL_Reg m[] = {
 
 		uint32_t size    = lua_tonumber(L, 2);
 		const bgfx_memory_t *mem = bgfx_alloc(size);
-		memcpy((void*)mem, lua_touserdata(L, 1), size);
+		memcpy((void*)mem->data, lua_touserdata(L, 1), size);
 
 		// this is absolutely going to segfault when gc happens
 		// const bgfx_memory_t *mem = bgfx_make_ref(data, size);
@@ -871,7 +872,7 @@ static const luaL_Reg m[] = {
 	{ "new_index_buffer", [](lua_State *L) {
 		int vertices = lua_objlen(L, -1);
 		const bgfx_memory_t *mem = bgfx_alloc(sizeof(uint16_t) * vertices);
-		uint16_t* data = (uint16_t*)mem;
+		uint16_t* data = (uint16_t*)mem->data;
 
 		for (int i=1; ; i++) {
 			lua_rawgeti(L, -1, i);
