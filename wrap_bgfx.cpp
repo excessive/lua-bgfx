@@ -263,6 +263,12 @@ static std::map<const char*, uint32_t, fuck_off_cpp> debug_lookup = {
 	{ "text",      BGFX_DEBUG_TEXT }
 };
 
+static std::map<const char*, uint32_t, fuck_off_cpp> hmd_lookup = {
+	{ "none",              BGFX_HMD_NONE },
+	{ "device_resolution", BGFX_HMD_DEVICE_RESOLUTION },
+	{ "rendering",         BGFX_HMD_RENDERING }
+};
+
 static std::map<const char*, uint32_t, fuck_off_cpp> reset_lookup = {
 	{ "none",               BGFX_RESET_NONE },
 	{ "fullscreen",         BGFX_RESET_FULLSCREEN },
@@ -385,6 +391,12 @@ static std::map<const char*, uint32_t, fuck_off_cpp> stencil_lookup = {
 	//{ "func_rmask", BGFX_STENCIL_FUNC_RMASK }
 };
 
+static std::map<const char*, uint32_t, fuck_off_cpp> submit_lookup = {
+	{ "left",  BGFX_SUBMIT_EYE_LEFT },
+	{ "right", BGFX_SUBMIT_EYE_RIGHT },
+	{ "first", BGFX_SUBMIT_EYE_FIRST }
+};
+
 // incomplete: doesn't include the macro function stuff
 static std::map<const char*, uint32_t, fuck_off_cpp> texture_lookup = {
 	{ "none", BGFX_TEXTURE_NONE },
@@ -427,6 +439,11 @@ static std::map<const char*, uint32_t, fuck_off_cpp> texture_lookup = {
 	{ "blit_dst",     BGFX_TEXTURE_BLIT_DST },
 	{ "read_back",    BGFX_TEXTURE_READ_BACK }//,
 	//{ "border_color", BGFX_TEXTURE_BORDER_COLOR }
+};
+
+static std::map<const char*, uint32_t, fuck_off_cpp> view_lookup = {
+	{ "none",   BGFX_VIEW_NONE },
+	{ "stereo", BGFX_VIEW_STEREO }
 };
 
 static void stack_dump(lua_State *L) {
