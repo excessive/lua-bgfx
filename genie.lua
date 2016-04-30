@@ -76,6 +76,7 @@ project "BGFX" do
 	configuration {"gmake"}
 	buildoptions {
 		"-fpic",
+		"-mstackrealign"
 	}
 end
 
@@ -129,6 +130,7 @@ project "lua-bgfx" do
 		"-std=c++11",
 		"-fno-strict-aliasing",
 		"-Wall",
-		"-Wextra"
+		"-Wextra",
+		"-mstackrealign"
 	}
 end
