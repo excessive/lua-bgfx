@@ -24,15 +24,15 @@ LUALIB_API int luaL_typerror (lua_State *L, int narg, const char *tname) {
 #endif
 
 static bgfx_shader_handle_t *to_shader_ud(lua_State *L, int index) {
-	bgfx_shader_handle_t **ud = (bgfx_shader_handle_t**)lua_touserdata(L, index);
+	bgfx_shader_handle_t *ud = (bgfx_shader_handle_t*)lua_touserdata(L, index);
 	if (ud == NULL) luaL_typerror(L, index, "bgfx_shader");
-	return *ud;
+	return ud;
 }
 
 static bgfx_program_handle_t *to_program_ud(lua_State *L, int index) {
-	bgfx_program_handle_t **ud = (bgfx_program_handle_t**)lua_touserdata(L, index);
+	bgfx_program_handle_t *ud = (bgfx_program_handle_t*)lua_touserdata(L, index);
 	if (ud == NULL) luaL_typerror(L, index, "bgfx_program");
-	return *ud;
+	return ud;
 }
 
 static bgfx_vertex_decl_t *to_vertex_format_ud(lua_State *L, int index) {
@@ -54,19 +54,6 @@ static bgfx_index_buffer_handle_t *to_index_buffer_ud(lua_State *L, int index) {
 }
 
 static const luaL_Reg shader_fn[] = {
-	{ "new", [](lua_State *L) {
-		bgfx_shader_handle_t **ud = (bgfx_shader_handle_t**)lua_newuserdata(L, sizeof(bgfx_shader_handle_t*));
-
-		const void *data = lua_topointer(L, -1);
-		unsigned int size = (unsigned int)lua_tonumber(L, -2);
-		lua_assert(data != NULL);
-		const bgfx_memory_t *mem = bgfx_make_ref(data, size);
-		*(*ud) = bgfx_create_shader(mem);
-
-		luaL_getmetatable(L, "bgfx_shader");
-		lua_setmetatable(L, -2);
-		return 1;
-	} },
 	{ "__gc", [](lua_State *L) {
 		printf("gc shader\n");
 		bgfx_shader_handle_t *ud = to_shader_ud(L, 1);
@@ -83,19 +70,6 @@ static const luaL_Reg shader_fn[] = {
 };
 
 static const luaL_Reg program_fn[] = {
-	{ "new", [](lua_State *L) {
-		bgfx_program_handle_t **ud = (bgfx_program_handle_t**)lua_newuserdata(L, sizeof(bgfx_program_handle_t*));
-
-		// lua_assert(data != NULL);
-		bgfx_shader_handle_t vsh = *to_shader_ud(L, 1);
-		bgfx_shader_handle_t fsh = *to_shader_ud(L, 2);
-
-		*(*ud) = bgfx_create_program(vsh, fsh, false);
-
-		luaL_getmetatable(L, "bgfx_program");
-		lua_setmetatable(L, -2);
-		return 1;
-	} },
 	{ "__gc",  [](lua_State *L) {
 		printf("gc program\n");
 		bgfx_program_handle_t *ud = to_program_ud(L, 1);
@@ -799,15 +773,101 @@ static const luaL_Reg m[] = {
 		return 1;
 	} },
 
-	{ "set_view_transform", [](lua_State *) {
-		// bgfx_set_view_transform(id, view, proj);
+	// TODO: Stereo views
+	{ "set_view_transform", [](lua_State *L) {
+		float view[16], proj[16];
+		memset(view, 0, 16*sizeof(float));
+		memset(proj, 0, 16*sizeof(float));
+
+		auto load_matrix = [](lua_State *L, int index, float *mtx) {
+			lua_pushvalue(L, index);
+			int num = lua_objlen(L, -1);
+
+			// we only accept 4x4 matrices
+			if (num % 16 != 0) {
+				printf("Invalid table length %d, must be divisible by 16.\n", num);
+				return;
+			}
+
+			for (int i=1; i<=16; i++) {
+				lua_rawgeti(L, -1, i);
+				if (lua_isnil(L,-1)) {
+					lua_pop(L, 1);
+					break;
+				}
+				mtx[i-1] = (float)luaL_checknumber(L, -1);
+				lua_pop(L, 1);
+			}
+			lua_pop(L, 1);
+		};
+
+		uint8_t id = (uint8_t)luaL_checkinteger(L, 1);
+		load_matrix(L, 2, view);
+		load_matrix(L, 3, proj);
+
+		bgfx_set_view_transform(id, view, proj);
 		// bgfx_set_view_transform_stereo(id, view, proj_l, flags, proj_r);
+
 		return 0;
 	} },
 
-	{ "set_transform", [](lua_State *) {
-		// bgfx_set_transform(mtx, num);
+	// bgfx.set_transform(mtx)
+	{ "set_transform", [](lua_State *L) {
+		// TODO: accept tables of matrices.
+		int num = lua_objlen(L, 1);
+
+		// we only accept 4x4 matrices
+		if (num % 16 != 0) {
+			printf("Invalid table length %d, must be divisible by 16.\n", num);
+			return 0;
+		}
+
+		float *mtx = new float[num];
+		for (int i=1; ; i++) {
+			lua_rawgeti(L, -1, i);
+			if (lua_isnil(L,-1)) {
+				lua_pop(L, 1);
+				break;
+			}
+			mtx[i-1] = (uint16_t)luaL_checkinteger(L, -1);
+			lua_pop(L, 1);
+		}
+
+		bgfx_set_transform(mtx, num / 16);
+
+		delete[] mtx;
+
 		return 0;
+	} },
+
+	{ "new_shader", [](lua_State *L) {
+		bgfx_shader_handle_t *ud = (bgfx_shader_handle_t*)lua_newuserdata(L, sizeof(bgfx_shader_handle_t));
+
+		const void *data = lua_topointer(L, -1);
+		unsigned int size = (unsigned int)lua_tonumber(L, -2);
+		lua_assert(data != NULL);
+
+		const bgfx_memory_t *mem = bgfx_copy(data, size);
+		*ud = bgfx_create_shader(mem);
+
+		luaL_getmetatable(L, "bgfx_shader");
+		lua_setmetatable(L, -2);
+		return 1;
+	} },
+
+	{ "new_program", [](lua_State *L) {
+		bgfx_program_handle_t *ud = (bgfx_program_handle_t*)lua_newuserdata(L, sizeof(bgfx_program_handle_t));
+
+		// lua_assert(data != NULL);
+		bgfx_shader_handle_t vsh = *to_shader_ud(L, 1);
+		bgfx_shader_handle_t fsh = *to_shader_ud(L, 2);
+
+		*ud = bgfx_create_program(vsh, fsh, false);
+
+		luaL_getmetatable(L, "bgfx_program");
+		lua_setmetatable(L, -2);
+
+		return 1;
 	} },
 
 	{ "new_vertex_format", [](lua_State *L) {
@@ -838,7 +898,7 @@ static const luaL_Reg m[] = {
 		};
 
 		static std::map<const char*, bgfx_attrib_type_t, fuck_off_cpp> type_lookup = {
-		   { "byte",   BGFX_ATTRIB_TYPE_UINT8 },
+			{ "byte",   BGFX_ATTRIB_TYPE_UINT8 },
 			{ "short",  BGFX_ATTRIB_TYPE_INT16 },
 			{ "float",  BGFX_ATTRIB_TYPE_FLOAT }
 			// { "half",   BGFX_ATTRIB_TYPE_HALF }
@@ -855,7 +915,7 @@ static const luaL_Reg m[] = {
 			table_scan(L, -2, [&](const char *k, const char *v) {
 				std::string key = std::string(k);
 
- 				if (key == "type") {
+				if (key == "type") {
 					auto val = type_lookup.find(v);
 					if (val != type_lookup.end()) {
 						type = val->second;
