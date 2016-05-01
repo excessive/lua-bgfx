@@ -643,6 +643,12 @@ static const luaL_Reg m[] = {
 		return 0;
 	} },
 
+	// bgfx.reset_view(0)
+	{ "reset_view", [](lua_State *L){
+		bgfx_reset_view((uint8_t)luaL_checkinteger(L, 1));
+		return 0;
+	} },
+
 	// bgfx.touch(0)
 	{ "touch", [](lua_State *L) {
 		int n = lua_gettop(L);
