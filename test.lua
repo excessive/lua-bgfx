@@ -25,7 +25,7 @@ local model, program
 local function load()
 	bgfx.init(true)
 	bgfx.reset(1280, 720, { "vsync" })
-	bgfx.set_debug { "text" }
+	bgfx.set_debug { "text", "wireframe" }
 
 	local info = bgfx.get_renderer_info()
 	print(info.name, info.type)
@@ -46,6 +46,8 @@ local function load()
 		bgfx.new_shader(vsb:getPointer(), vsb:getSize()),
 		bgfx.new_shader(fsb:getPointer(), fsb:getSize())
 	)
+	vsb = nil
+	fsb = nil
 end
 
 local function draw()
@@ -67,7 +69,14 @@ local function draw()
 		local m = cpml.mat4()
 		bgfx.set_vertex_buffer(model.mesh)
 		bgfx.set_index_buffer(model.ibo, mesh.first, mesh.count)
-		bgfx.set_state { "default" }
+		bgfx.set_state {
+			"msaa",
+			"alpha_write",
+			"rgb_write",
+			"cull_ccw",
+			"depth_write",
+			"depth_test_lequal"
+		}
 		bgfx.set_transform(m)
 		bgfx.submit(0, program)
 	end

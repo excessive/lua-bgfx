@@ -798,6 +798,18 @@ static const luaL_Reg m[] = {
 				mtx[i-1] = (float)luaL_checknumber(L, -1);
 				lua_pop(L, 1);
 			}
+
+			// printf(
+			// 	"%+2.2f %+2.2f %+2.2f %+2.2f\n"
+			// 	"%+2.2f %+2.2f %+2.2f %+2.2f\n"
+			// 	"%+2.2f %+2.2f %+2.2f %+2.2f\n"
+			// 	"%+2.2f %+2.2f %+2.2f %+2.2f\n\n",
+			// 	mtx[0], mtx[4], mtx[8],  mtx[12],
+			// 	mtx[1], mtx[5], mtx[9],  mtx[13],
+			// 	mtx[2], mtx[6], mtx[10], mtx[14],
+			// 	mtx[3], mtx[7], mtx[11], mtx[15]
+			// );
+
 			lua_pop(L, 1);
 		};
 
