@@ -18,6 +18,9 @@ end
 love.filesystem.init(get_low(arg))
 love.filesystem.setSource(love.filesystem.getWorkingDirectory())
 
+local iqm = require "iqm"
+local model
+
 local function load()
 	bgfx.init(true)
 	bgfx.reset(1280, 720, { "vsync" })
@@ -31,17 +34,7 @@ local function load()
 		print(k, v)
 	end
 
-	local fmt = bgfx.new_vertex_format {
-		{ attrib = "position", type = "float", num = 3 }
-	}
-	print(fmt)
-
-	local ib = bgfx.new_index_buffer({1, 2, 3, 4, 5, 6})
-	print(ib)
-
-	local data, err = love.filesystem.newFileData("bin/bgfx.so")
-	local vb = bgfx.new_vertex_buffer(data:getPointer(), data:getSize(), fmt)
-	print(vb)
+	model = iqm.load("chair.iqm")
 
 	bgfx.set_view_clear(0, { "color", "depth" }, 0x303030ff, 1.0, 0)
 	bgfx.set_view_name(0, "igor");
@@ -58,10 +51,12 @@ local function draw()
 	bgfx.set_view_rect(0, 0, 0, 1280, 720)
 	bgfx.touch(0)
 
-	-- bgfx.set_vertex_buffer(vb, 0, 30)
-	-- bgfx.set_index_buffer(ib, 0, 30)
-	-- bgfx.set_state { "pt_points" }
-	-- bgfx.submit(0, p)
+	for _, mesh in ipairs(model) do
+		bgfx.set_vertex_buffer(model.mesh)
+		bgfx.set_index_buffer(model.ibo, mesh.first, mesh.count)
+		bgfx.set_state { "default" }
+		-- bgfx.submit(0, p)
+	end
 
 	bgfx.frame()
 end
@@ -70,16 +65,12 @@ local function quit()
 	bgfx.shutdown()
 end
 
-require "love.math"
 require "love.event"
 require "love.timer"
 require "love.keyboard"
 
-love.math.setRandomSeed(os.time())
 love.event.pump()
 if load then load() end
-love.timer.step()
-local dt = 0
 while true do
 	if love.event then
 		love.event.pump()
@@ -90,25 +81,13 @@ while true do
 				love.event.quit()
 			end
 			if name == "quit" then
-				if not quit or not quit() then
+				if not quit() then
 					return
 				end
 			end
 		end
 	end
-
-	if love.timer then
-		love.timer.step()
-		dt = love.timer.getDelta()
-		if love.keyboard.isDown "tab" then
-			dt = dt * 4
-		end
-	end
-
-	if update then update(dt) end
-	if draw then draw() end
-
+	draw()
 	collectgarbage("step")
-
-	if love.timer then love.timer.sleep(0.001) end
+	love.timer.sleep(0.001)
 end
