@@ -16,9 +16,10 @@ extern "C" {
 
 #ifndef luaL_typerror
 LUALIB_API int luaL_typerror (lua_State *L, int narg, const char *tname) {
-  const char *msg = lua_pushfstring(L, "%s expected, got %s",
-                                    tname, luaL_typename(L, narg));
-  return luaL_argerror(L, narg, msg);
+	const char *msg = lua_pushfstring(L,
+		"%s expected, got %s", tname, luaL_typename(L, narg)
+	);
+	return luaL_argerror(L, narg, msg);
 }
 #endif
 
@@ -755,6 +756,12 @@ static const luaL_Reg m[] = {
 		bgfx_set_view_name(id, name);
 		return 0;
 	} },
+
+	// bgfx.set_marker("miku")
+	{ "set_marker", [](lua_State *L) {
+		bgfx_set_marker(luaL_checkstring(L, 1));
+		return 0;
+	}},
 
 	// bgfx.submit(0, program)
 	// bgfx.submit(0, program, 0, false)
