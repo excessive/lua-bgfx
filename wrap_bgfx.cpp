@@ -691,6 +691,15 @@ static const luaL_Reg m[] = {
 		return 0;
 	} },
 
+	{ "set_view_sequential", [](lua_State *L){
+		bool enabled = true;
+		if (lua_isboolean(L, 2)) {
+			enabled = lua_toboolean(L, 2) ? true : false;
+		}
+		bgfx_set_view_seq((uint8_t)luaL_checkinteger(L, 1), enabled);
+		return 0;
+	} },
+
 	// bgfx.set_view_rect(0, 0, 0, 1280, 720)
 	// bgfx.set_view_rect(0) -- auto set to full extents
 	{ "set_view_rect", [](lua_State *L) {
