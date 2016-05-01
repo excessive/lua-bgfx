@@ -97,7 +97,7 @@ static const luaL_Reg program_fn[] = {
 		return 1;
 	} },
 	{ "__gc",  [](lua_State *L) {
-		printf("gc prgram\n");
+		printf("gc program\n");
 		bgfx_program_handle_t *ud = to_program_ud(L, 1);
 		bgfx_destroy_program(*ud);
 		return 0;
@@ -885,8 +885,7 @@ static const luaL_Reg m[] = {
 		bgfx_vertex_buffer_handle_t *ud = (bgfx_vertex_buffer_handle_t*)lua_newuserdata(L, sizeof(bgfx_vertex_buffer_handle_t));
 
 		uint32_t size    = lua_tonumber(L, 2);
-		const bgfx_memory_t *mem = bgfx_alloc(size);
-		memcpy((void*)mem->data, lua_touserdata(L, 1), size);
+		const bgfx_memory_t *mem = bgfx_copy(lua_touserdata(L, 1), size);
 
 		// this is absolutely going to segfault when gc happens
 		// const bgfx_memory_t *mem = bgfx_make_ref(data, size);
