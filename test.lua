@@ -18,8 +18,9 @@ end
 love.filesystem.init(get_low(arg))
 love.filesystem.setSource(love.filesystem.getWorkingDirectory())
 
-local iqm = require "iqm"
-local model
+local cpml = require "cpml"
+local iqm  = require "iqm"
+local model, program
 
 local function load()
 	bgfx.init(true)
@@ -37,25 +38,38 @@ local function load()
 	model = iqm.load("chair.iqm")
 
 	bgfx.set_view_clear(0, { "color", "depth" }, 0x303030ff, 1.0, 0)
-	bgfx.set_view_name(0, "igor");
+	bgfx.set_view_name(0, "igor")
+
+	local vsb = love.filesystem.newFileData("test.vs.bin")
+	local fsb = love.filesystem.newFileData("test.fs.bin")
+	program = bgfx.new_program(
+		bgfx.new_shader(vsb:getPointer(), vsb:getSize()),
+		bgfx.new_shader(fsb:getPointer(), fsb:getSize())
+	)
 end
 
--- local vsh = bgfx.new_shader()
--- local fsh = bgfx.new_shader()
--- local csh = bgfx.new_shader()
--- local p = bgfx.new_program(vsh, fsh)
-
 local function draw()
+	bgfx.set_marker("miku")
 	bgfx.debug_text_clear()
 	bgfx.debug_text_print(0, 0, 0x6f, "ayy lmao")
 	bgfx.set_view_rect(0, 0, 0, 1280, 720)
 	bgfx.touch(0)
 
+	local p = cpml.mat4():perspective(60, 1280/720, 0.1, 100.0)
+	local v = cpml.mat4():look_at(
+		cpml.vec3(0, -5, 0),
+		cpml.vec3(0, 0.5, 0),
+		cpml.vec3.unit_z
+	)
+	bgfx.set_view_transform(0, v, p)
+
 	for _, mesh in ipairs(model) do
+		local m = cpml.mat4()
 		bgfx.set_vertex_buffer(model.mesh)
 		bgfx.set_index_buffer(model.ibo, mesh.first, mesh.count)
 		bgfx.set_state { "default" }
-		-- bgfx.submit(0, p)
+		bgfx.set_transform(m)
+		bgfx.submit(0, program)
 	end
 
 	bgfx.frame()
