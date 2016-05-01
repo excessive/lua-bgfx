@@ -796,29 +796,32 @@ static const luaL_Reg m[] = {
 		luaL_getmetatable(L, "bgfx_vertex_format");
 		lua_setmetatable(L, -2);
 
-	   //  "position"
-	   //  "normal"
-	   //  "tangent"
-	   //  "bitangent"
-	   //  "color0"
-	   //  "color1"
-	   //  "indices"
-	   //  "weight"
-	   //  "texcoord0"
-	   //  "texcoord1"
-	   //  "texcoord2"
-	   //  "texcoord3"
-	   //  "texcoord4"
-	   //  "texcoord5"
-	   //  "texcoord6"
-	   //  "texcoord7"
+		static std::map<const char*, bgfx_attrib_t, fuck_off_cpp> format_lookup = {
+			{ "position", BGFX_ATTRIB_POSITION },
+			{ "normal", BGFX_ATTRIB_NORMAL },
+			{ "tangent", BGFX_ATTRIB_TANGENT },
+			{ "bitangent", BGFX_ATTRIB_BITANGENT },
+			{ "color0", BGFX_ATTRIB_COLOR0 },
+			{ "color1", BGFX_ATTRIB_COLOR1 },
+			{ "indices", BGFX_ATTRIB_INDICES },
+			{ "weight", BGFX_ATTRIB_WEIGHT },
+			{ "texcoord0", BGFX_ATTRIB_TEXCOORD0 },
+			{ "texcoord1", BGFX_ATTRIB_TEXCOORD1 },
+			{ "texcoord2", BGFX_ATTRIB_TEXCOORD2 },
+			{ "texcoord3", BGFX_ATTRIB_TEXCOORD3 },
+			{ "texcoord4", BGFX_ATTRIB_TEXCOORD4 },
+			{ "texcoord5", BGFX_ATTRIB_TEXCOORD5 },
+			{ "texcoord6", BGFX_ATTRIB_TEXCOORD6 },
+			{ "texcoord7", BGFX_ATTRIB_TEXCOORD7 }
+		};
 
-	   //  "type_uint8"
-	   //  "type_uint10"
-	   //  "type_int16"
-	   //  "type_half"
-	   //  "type_float"
-
+		static std::map<const char*, bgfx_attrib_type_t, fuck_off_cpp> type_lookup = {
+		   { "byte",   BGFX_ATTRIB_TYPE_UINT8 },
+			{ "short",  BGFX_ATTRIB_TYPE_INT16 },
+			{ "float",  BGFX_ATTRIB_TYPE_FLOAT }
+			// { "half",   BGFX_ATTRIB_TYPE_HALF }
+			// { "uint10", BGFX_ATTRIB_TYPE_UINT10 }
+		};
 
 		table_scan(L, -2, [&](const char *, const char *) {
 			bgfx_attrib_t attrib    = BGFX_ATTRIB_POSITION;
@@ -831,10 +834,16 @@ static const luaL_Reg m[] = {
 				std::string key = std::string(k);
 
  				if (key == "type") {
-					// str2type(v);
+					auto val = type_lookup.find(v);
+					if (val != type_lookup.end()) {
+						type = val->second;
+					}
 					return;
 				} else if (key == "attrib") {
-					// str2attrib(v);
+					auto val = format_lookup.find(v);
+					if (val != format_lookup.end()) {
+						attrib = val->second;
+					}
 					return;
 				} else if (key == "num") {
 					size = (uint8_t)atoi(v);
@@ -899,8 +908,14 @@ static const luaL_Reg m[] = {
 		(void)n;
 
 		bgfx_vertex_buffer_handle_t* handle = to_vertex_buffer_ud(L, 1);
-		int start = (int)lua_tonumber(L, 2);
-		int num = (int)lua_tonumber(L, 3);
+		uint32_t start = 0;
+		uint32_t num = UINT32_MAX;
+		if (lua_isnumber(L, 2)) {
+			start = (uint32_t)lua_tonumber(L, 2);
+		}
+		if (lua_isnumber(L, 3)) {
+			num = (uint32_t)lua_tonumber(L, 3);
+		}
 
 		bgfx_set_vertex_buffer(*handle, start, num);
 		return 0;
@@ -919,7 +934,7 @@ static const luaL_Reg m[] = {
 		return 0;
 	} },
 
-	{ "discard", [](lua_State *L) {
+	{ "discard", [](lua_State *) {
 		bgfx_discard();
 		return 0;
 	} },
@@ -1008,6 +1023,9 @@ int luaopen_bgfx(lua_State *L) {
 	lua_pop(L, lua_gettop(L));
 
 	luaL_register(L, "bgfx", m);
+
+	// shut up gcc when we aren't doing any stack dumps
+	(void)stack_dump;
 
 	return 1;
 }
