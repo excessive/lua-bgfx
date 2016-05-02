@@ -1,14 +1,16 @@
-local EXTERN_DIR = "extern"
-local OVR_DIR = path.join(EXTERN_DIR, "LibOVR")
+local BASE_DIR   = path.getabsolute("..")
+local EXTERN_DIR = path.join(BASE_DIR, "extern")
+local OVR_DIR    = path.join(EXTERN_DIR, "LibOVR")
 
 solution "lua-bgfx" do
+	uuid "8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942"
 	configurations { "Debug", "Release" }
 	platforms { "Native", "x32", "x64" }
 
 	startproject "lua-bgfx"
 
-	targetdir "bin"
-	objdir "obj"
+	targetdir(path.join(BASE_DIR, "bin"))
+	objdir(path.join(BASE_DIR, "obj"))
 
 	configuration { "Debug" }
 	flags { "Symbols" }
@@ -19,16 +21,19 @@ end
 if os.get() == "windows" then
 	SDL_DIR = path.join(EXTERN_DIR, "sdl")
 	project "SDL2" do
+		uuid "3ABE8B7C-26F5-8C0D-CFE1-7210BBF7080F"
 		targetname "SDL2"
 		kind "SharedLib"
 		language "C++"
 
 		local headers = os.matchfiles(path.join(SDL_DIR, "include") .. "/*.h")
-		os.mkdir("include")
-		os.mkdir("include/SDL2")
+		local dir = path.join(BASE_DIR, "scripts/include")
+		os.mkdir(dir)
+		os.mkdir(path.join(dir, "SDL2"))
 		for _, header in pairs(headers) do
 			local file = path.getname(header)
-			local path = path.join("include/SDL2", file)
+			local folder = path.join(dir, "SDL2")
+			local path = path.join(folder, file)
 			os.copyfile(header, path)
 		end
 
@@ -120,6 +125,7 @@ local function link_ovr()
 end
 
 project "BGFX" do
+	uuid "EC77827C-D8AE-830D-819B-69106DB1FF0E"
 	targetname "bgfx_s"
 	kind "StaticLib"
 	language "C++"
@@ -184,13 +190,14 @@ project "BGFX" do
 end
 
 project "lua-bgfx" do
+	uuid "BB11813B-A7DE-DB46-D0F7-C9EEBC2311D5"
 	targetprefix ""
 	targetname "bgfx"
 	kind "SharedLib"
 	language "C++"
 
 	files {
-		"wrap_bgfx.cpp"
+		path.join(BASE_DIR, "wrap_bgfx.cpp")
 	}
 
 	links {
@@ -198,15 +205,15 @@ project "lua-bgfx" do
 	}
 
 	includedirs {
-		"extern/bgfx/include",
-		"extern/bx/include"
+		path.join(EXTERN_DIR, "bgfx/include"),
+		path.join(EXTERN_DIR, "bx/include")
 	}
 
 	configuration {"vs*"}
 	defines { "_CRT_SECURE_NO_WARNINGS" }
 	includedirs {
 		path.join(EXTERN_DIR, "luajit/src"),
-		"include",
+		path.join(BASE_DIR, "scripts/include"),
 		EXTERN_DIR
 	}
 	libdirs {
