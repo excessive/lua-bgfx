@@ -1,22 +1,21 @@
-#!/usr/bin/env luajit
-package.cpath = package.cpath .. ";./bin/?.so"
+-- #!/usr/bin/env luajit
+package.cpath = package.cpath .. ";./bin/?.dll;./bin/?.so"
 
 local bgfx = require "bgfx"
 
-require "love"
-require "love.filesystem"
-
-local function get_low(a)
-	local m = math.huge
-	for k,v in pairs(a) do
-		if k < m then
-			m = k
-		end
-	end
-	return a[m]
-end
-love.filesystem.init(get_low(arg))
-love.filesystem.setSource(love.filesystem.getWorkingDirectory())
+-- require "love"
+-- require "love.filesystem"
+-- local function get_low(a)
+-- 	local m = math.huge
+-- 	for k,v in pairs(a) do
+-- 		if k < m then
+-- 			m = k
+-- 		end
+-- 	end
+-- 	return a[m]
+-- end
+-- love.filesystem.init(get_low(arg))
+-- love.filesystem.setSource(love.filesystem.getWorkingDirectory())
 
 local cpml = require "cpml"
 local iqm  = require "iqm"
@@ -25,15 +24,18 @@ local model, program
 local function load()
 	bgfx.init(true)
 	bgfx.reset(1280, 720, { "vsync" })
-	bgfx.set_debug { "text", "wireframe" }
+	bgfx.set_debug {
+		"stats",
+		-- "wireframe"
+	}
 
 	local info = bgfx.get_renderer_info()
 	print(info.name, info.type)
 
-	local hmd = bgfx.get_hmd() or {}
-	for k, v in pairs(hmd) do
-		print(k, v)
-	end
+	-- local hmd = bgfx.get_hmd() or {}
+	-- for k, v in pairs(hmd) do
+	-- 	print(k, v)
+	-- end
 
 	model = iqm.load("chair.iqm")
 

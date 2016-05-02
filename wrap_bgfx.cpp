@@ -569,7 +569,7 @@ static const luaL_Reg m[] = {
 
 			bgfx_set_platform_data(&data);
 		}
-		if (!bgfx_init(BGFX_RENDERER_TYPE_COUNT, BGFX_PCI_ID_NONE, 0, NULL, NULL)) {
+		if (!bgfx_init(BGFX_RENDERER_TYPE_OPENGL, BGFX_PCI_ID_NONE, 0, NULL, NULL)) {
 			printf(":(\n");
 			return 0;
 		}
@@ -945,14 +945,14 @@ static const luaL_Reg m[] = {
 		lua_setmetatable(L, -2);
 
 		static std::map<const char*, bgfx_attrib_t, fuck_off_cpp> format_lookup = {
-			{ "position", BGFX_ATTRIB_POSITION },
-			{ "normal", BGFX_ATTRIB_NORMAL },
-			{ "tangent", BGFX_ATTRIB_TANGENT },
+			{ "position",  BGFX_ATTRIB_POSITION },
+			{ "normal",    BGFX_ATTRIB_NORMAL },
+			{ "tangent",   BGFX_ATTRIB_TANGENT },
 			{ "bitangent", BGFX_ATTRIB_BITANGENT },
-			{ "color0", BGFX_ATTRIB_COLOR0 },
-			{ "color1", BGFX_ATTRIB_COLOR1 },
-			{ "indices", BGFX_ATTRIB_INDICES },
-			{ "weight", BGFX_ATTRIB_WEIGHT },
+			{ "color0",    BGFX_ATTRIB_COLOR0 },
+			{ "color1",    BGFX_ATTRIB_COLOR1 },
+			{ "indices",   BGFX_ATTRIB_INDICES },
+			{ "weight",    BGFX_ATTRIB_WEIGHT },
 			{ "texcoord0", BGFX_ATTRIB_TEXCOORD0 },
 			{ "texcoord1", BGFX_ATTRIB_TEXCOORD1 },
 			{ "texcoord2", BGFX_ATTRIB_TEXCOORD2 },
@@ -993,9 +993,12 @@ static const luaL_Reg m[] = {
 					auto val = format_lookup.find(v);
 					if (val != format_lookup.end()) {
 						attrib = val->second;
+						if (attrib == BGFX_ATTRIB_COLOR0 || attrib == BGFX_ATTRIB_COLOR1) {
+							//normalized = true;
+						}
 					}
 					return;
-				} else if (key == "num") {
+				} else if (key == "size") {
 					size = (uint8_t)atoi(v);
 					return;
 				}

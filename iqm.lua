@@ -319,6 +319,12 @@ function iqm.load(file, save_data)
 					computed_bbox.max[i] = math.max(computed_bbox.max[i] or v[i-1], v[i-1])
 				end
 			end
+			if va.type == "color0" then
+				local v = vertices[i][va.type]
+				for i = 0, 3 do
+					v[i] = 0--v[i] / 255
+				end
+			end
 		end
 	end
 
@@ -334,10 +340,10 @@ function iqm.load(file, save_data)
 	-- Translate indices for love
 	local indices = {}
 	for _, triangle in ipairs(triangles) do
-		table.insert(indices, triangle.vertex[0] + 1)
+		table.insert(indices, triangle.vertex[0])
 		-- IQM uses CW winding, but we want CCW. Reverse.
-		table.insert(indices, triangle.vertex[2] + 1)
-		table.insert(indices, triangle.vertex[1] + 1)
+		table.insert(indices, triangle.vertex[2])
+		table.insert(indices, triangle.vertex[1])
 	end
 
 	-- re-read the vertex data :(
@@ -413,7 +419,7 @@ function iqm.load(file, save_data)
 	objects.ibo  = ib
 	for i, mesh in ipairs(meshes) do
 		local add = {
-			first    = mesh.first_triangle * 3 + 1,
+			first    = mesh.first_triangle * 3,
 			count    = mesh.num_triangles * 3,
 			material = ffi.string(text+mesh.material),
 			name     = ffi.string(text+mesh.name)
