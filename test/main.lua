@@ -1,5 +1,5 @@
 -- #!/usr/bin/env luajit
-package.cpath = package.cpath .. ";./bin/?.dll;./bin/?.so"
+package.cpath = package.cpath .. ";../bin/?.dll;../bin/?.so"
 
 local bgfx = require "bgfx"
 
@@ -37,13 +37,13 @@ local function load()
 	-- 	print(k, v)
 	-- end
 
-	model = iqm.load("chair.iqm")
+	model = iqm.load("assets/models/chair.iqm")
 
 	bgfx.set_view_clear(0, { "color", "depth" }, 0x303030ff, 1.0, 0)
 	bgfx.set_view_name(0, "igor")
 
-	local vsb = love.filesystem.newFileData("test.vs.bin")
-	local fsb = love.filesystem.newFileData("test.fs.bin")
+	local vsb = love.filesystem.newFileData("assets/shaders/bin/test.vs.bin")
+	local fsb = love.filesystem.newFileData("assets/shaders/bin/test.fs.bin")
 	program = bgfx.new_program(
 		bgfx.new_shader(vsb:getPointer(), vsb:getSize()),
 		bgfx.new_shader(fsb:getPointer(), fsb:getSize())

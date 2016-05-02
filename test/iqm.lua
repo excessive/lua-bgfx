@@ -1,3 +1,5 @@
+-- This is like the upstream version of the file, except +1's have been removed
+-- and output format changes have been made such that it works with lua-bgfx.
 local base = (...):gsub('%.init$', '') .. "."
 local ffi  = require "ffi"
 
@@ -317,12 +319,6 @@ function iqm.load(file, save_data)
 				for i = 1, 3 do
 					computed_bbox.min[i] = math.min(computed_bbox.min[i] or v[i-1], v[i-1])
 					computed_bbox.max[i] = math.max(computed_bbox.max[i] or v[i-1], v[i-1])
-				end
-			end
-			if va.type == "color0" then
-				local v = vertices[i][va.type]
-				for i = 0, 3 do
-					v[i] = 0--v[i] / 255
 				end
 			end
 		end
