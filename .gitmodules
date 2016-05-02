@@ -4,6 +4,6 @@
 [submodule "extern/bx"]
 	path = extern/bx
 	url = https://github.com/bkaradzic/bx.git
-[submodule "cpml"]
+[submodule "test/cpml"]
 	path = test/cpml
 	url = https://github.com/excessive/cpml.git
