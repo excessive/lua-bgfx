@@ -11,8 +11,48 @@ extern "C" {
 #include <bgfx/c99/bgfxplatform.h>
 }
 
+#include <bx/fpumath.h>
+
 #include <cstring>
 #include <map>
+
+namespace {
+	void perspective(
+		float *_result,
+		float aspect,
+		float fovy     = 60.0f,
+		float zNear    = 0.1f,
+		bool  infinite = true,
+		float zFar     = 1000.0f
+	) {
+		memset(_result, 0, sizeof(float)*16);
+
+		float range  = tan(fovy / 2.0f);
+		_result[11] = -1.0f;
+
+		if (infinite) {
+			range *= zNear;
+
+			const float ep     = 0.0f;
+			const float left   = -range * aspect;
+			const float right  =  range * aspect;
+			const float bottom = -range;
+			const float top    =  range;
+
+			_result[0] = (2.0f * zNear) / (right - left);
+			_result[5] = (2.0f * zNear) / (top - bottom);
+			_result[9] = ep - 1.0f;
+			_result[14] = (ep - 2.0f) * zNear;
+		}
+		else {
+			_result[0] = 1.0f / (aspect * range);
+			_result[5] = 1.0f / (range);
+			_result[9] = -(zFar + zNear) / (zFar - zNear);
+			_result[14] = -(2.0f * zFar * zNear) / (zFar - zNear);
+		}
+
+	}
+}
 
 #ifndef luaL_typerror
 LUALIB_API int luaL_typerror (lua_State *L, int narg, const char *tname) {
@@ -814,6 +854,20 @@ static const luaL_Reg m[] = {
 		};
 
 		uint8_t id = (uint8_t)luaL_checkinteger(L, 1);
+
+		// float x90 = bx::toRad(-90.0f);
+		// float fov = bx::toRad(60.0f);
+		// float aspect = 1280.f/720.f;
+		//
+		// float tmp[16], rot[16];
+		// bx::mtxTranslate(tmp, 0.0f, 2.0f, -1.6f);
+		// bx::mtxRotateX(rot, -x90);
+		// bx::mtxMul(view, tmp, rot);// rot, tmp);
+		//
+		// ::perspective(proj, aspect, fov);//, 0.01f, true, 1000.0f);
+		// // bgfx::setViewTransform(0, view, tmp);
+
+		// bx::mtxTranslate(view, float _tx, float _ty, float _tz)
 		load_matrix(L, 2, view);
 		load_matrix(L, 3, proj);
 
@@ -926,6 +980,8 @@ static const luaL_Reg m[] = {
 
 			table_scan(L, -2, [&](const char *k, const char *v) {
 				std::string key = std::string(k);
+
+				printf("= %s %s\n", k, v);
 
 				if (key == "type") {
 					auto val = type_lookup.find(v);
