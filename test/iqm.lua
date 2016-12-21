@@ -333,13 +333,13 @@ function iqm.load(file, save_data)
 	)
 	assert(#triangles == header.num_triangles)
 
-	-- Translate indices for love
+	-- Translate indices for bgfx
 	local indices = {}
 	for _, triangle in ipairs(triangles) do
-		table.insert(indices, triangle.vertex[0])
+		table.insert(indices, triangle.vertex[0] + 1)
 		-- IQM uses CW winding, but we want CCW. Reverse.
-		table.insert(indices, triangle.vertex[2])
-		table.insert(indices, triangle.vertex[1])
+		table.insert(indices, triangle.vertex[2] + 1)
+		table.insert(indices, triangle.vertex[1] + 1)
 	end
 
 	-- re-read the vertex data :(

@@ -1,14 +1,12 @@
 local bgfx = require "bgfx"
 local cpml = require "cpml"
 local iqm  = require "iqm"
-local model, program, tex
+local model, program, tex, sampler
 
 function love.load()
 	bgfx.init(true)
 	bgfx.reset(1280, 720, { "vsync" })
-	bgfx.set_debug {
-		"stats"
-	}
+	bgfx.set_debug { "text" }
 
 	local info = bgfx.get_renderer_info()
 	print(info.name, info.type)
@@ -20,7 +18,9 @@ function love.load()
 
 	local _tex = love.image.newImageData("assets/textures/grid.png")
 	tex = bgfx.new_texture(_tex:getString(), _tex:getWidth(), _tex:getHeight())
+	sampler = bgfx.new_uniform("s_tex", "int", 1)
 
+	-- model = iqm.load("assets/models/StagePolish0.11.iqm")
 	model = iqm.load("assets/models/chair.iqm")
 
 	bgfx.set_view_clear(0, { "color", "depth" }, 0x303030ff, 1.0, 0)
@@ -41,8 +41,8 @@ function love.draw()
 
 	local p = cpml.mat4():perspective(60, 1280/720, 0.1, 100.0)
 	local v = cpml.mat4():look_at(
-		cpml.vec3(0, -5, 0),
-		cpml.vec3(0, 0.5, 0),
+		cpml.vec3(0, -3.0, 1.5),
+		cpml.vec3(0, 0.25, 0.5),
 		cpml.vec3.unit_z
 	)
 	bgfx.set_view_transform(0, v, p)
@@ -54,11 +54,12 @@ function love.draw()
 		bgfx.set_state {
 			"msaa",
 			"alpha_write",
-			"rgb_write",
 			"cull_ccw",
+			"rgb_write",
 			"depth_write",
 			"depth_test_lequal"
 		}
+		bgfx.set_texture(0, sampler, tex)
 		bgfx.set_transform(m)
 		bgfx.submit(0, program)
 	end
@@ -67,9 +68,6 @@ function love.draw()
 end
 
 function love.quit()
-	model   = nil
-	program = nil
-
 	bgfx.shutdown()
 end
 
