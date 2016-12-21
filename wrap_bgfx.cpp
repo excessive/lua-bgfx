@@ -782,8 +782,8 @@ static const luaL_Reg m[] = {
 	{ "submit", [](lua_State *L) {
 		int n = lua_gettop(L);
 		lua_assert(n == 4);
-		(void)n;
-		uint8_t id = (uint8_t)lua_tonumber(L, 1);
+		uint8_t id = (uint8_t)luaL_checkinteger(L, 1);
+
 		bgfx_program_handle_t *program = to_program_ud(L, 2);
 		int32_t depth = 0;
 		bool preserve_state = false;
@@ -797,6 +797,25 @@ static const luaL_Reg m[] = {
 		lua_pushnumber(L, r);
 		return 1;
 	} },
+
+	{ "dispatch", [](lua_State *L) {
+		int n = lua_gettop(L);
+		lua_assert(n == 4);
+
+		uint8_t id = (uint8_t)lua_tonumber(L, 1);
+		bgfx_program_handle_t *program = to_program_ud(L, 2);
+
+		uint16_t nx = luaL_checkinteger(L, 3);
+		uint16_t ny = luaL_checkinteger(L, 4);
+		uint16_t nz = luaL_checkinteger(L, 5);
+
+		// TODO: stereo support
+		uint32_t r = bgfx_dispatch(id, *program, nx, ny, nz, 0);
+
+		lua_pushnumber(L, r);
+
+		return 1;
+	}},
 
 	// TODO: Stereo views
 	{ "set_view_transform", [](lua_State *L) {
