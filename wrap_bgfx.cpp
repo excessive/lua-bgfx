@@ -28,7 +28,15 @@ namespace {
 		memset(_result, 0, sizeof(float)*16);
 
 		float range  = tan(fovy / 2.0f);
-		_result[11] = -1.0f;
+
+		bool ogl_ndc = true;
+		// for OpenGL
+		if (ogl_ndc) {
+			_result[11] = -1.0f;
+		}
+		else {
+			_result[11] = 1.0f;
+		}
 
 		if (infinite) {
 			range *= zNear;
@@ -50,7 +58,6 @@ namespace {
 			_result[9] = -(zFar + zNear) / (zFar - zNear);
 			_result[14] = -(2.0f * zFar * zNear) / (zFar - zNear);
 		}
-
 	}
 }
 
@@ -62,12 +69,6 @@ LUALIB_API int luaL_typerror (lua_State *L, int narg, const char *tname) {
 	return luaL_argerror(L, narg, msg);
 }
 #endif
-
-static bgfx_shader_handle_t *to_shader_ud(lua_State *L, int index) {
-	bgfx_shader_handle_t *ud = (bgfx_shader_handle_t*)lua_touserdata(L, index);
-	if (ud == NULL) luaL_typerror(L, index, "bgfx_shader");
-	return ud;
-}
 
 static bgfx_program_handle_t *to_program_ud(lua_State *L, int index) {
 	bgfx_program_handle_t *ud = (bgfx_program_handle_t*)lua_touserdata(L, index);
@@ -93,25 +94,9 @@ static bgfx_index_buffer_handle_t *to_index_buffer_ud(lua_State *L, int index) {
 	return ud;
 }
 
-static const luaL_Reg shader_fn[] = {
-	{ "__gc", [](lua_State *L) {
-		printf("gc shader\n");
-		bgfx_shader_handle_t *ud = to_shader_ud(L, 1);
-		bgfx_destroy_shader(*ud);
-		return 0;
-	} },
-	{ "__tostring", [](lua_State *L) {
-		char buff[32];
-		sprintf(buff, "%p", to_shader_ud(L, 1));
-		lua_pushfstring(L, "bgfx_shader (%s)", buff);
-		return 1;
-	} },
-	{ NULL, NULL }
-};
-
 static const luaL_Reg program_fn[] = {
 	{ "__gc",  [](lua_State *L) {
-		printf("gc program\n");
+		printf("gc shader program\n");
 		bgfx_program_handle_t *ud = to_program_ud(L, 1);
 		bgfx_destroy_program(*ud);
 		return 0;
@@ -906,29 +891,41 @@ static const luaL_Reg m[] = {
 		return 0;
 	} },
 
-	{ "new_shader", [](lua_State *L) {
-		bgfx_shader_handle_t *ud = (bgfx_shader_handle_t*)lua_newuserdata(L, sizeof(bgfx_shader_handle_t));
-
-		const void *data = lua_topointer(L, -1);
-		unsigned int size = (unsigned int)lua_tonumber(L, -2);
-		lua_assert(data != NULL);
-
-		const bgfx_memory_t *mem = bgfx_copy(data, size);
-		*ud = bgfx_create_shader(mem);
-
-		luaL_getmetatable(L, "bgfx_shader");
-		lua_setmetatable(L, -2);
-		return 1;
-	} },
-
 	{ "new_program", [](lua_State *L) {
+		bool compute = false;
+
+		if (!lua_isstring(L, 1)) {
+			lua_pushboolean(L, 0);
+			return 1;
+		}
+
+		if (lua_isboolean(L, 2)) {
+			compute = true;
+		}
+
+		if (!compute && !lua_isstring(L, 2)) {
+			lua_pushboolean(L, 0);
+			return 1;
+		}
+
+		size_t size = 0;
+		const char *data = lua_tolstring(L, 1, &size);
+		bgfx_shader_handle_t vsh = bgfx_create_shader(bgfx_copy(data, size));
+		bgfx_shader_handle_t fsh;
+
+		if (!compute) {
+			data = lua_tolstring(L, 2, &size);
+			fsh = bgfx_create_shader(bgfx_copy(data, size));
+		}
+
 		bgfx_program_handle_t *ud = (bgfx_program_handle_t*)lua_newuserdata(L, sizeof(bgfx_program_handle_t));
 
-		// lua_assert(data != NULL);
-		bgfx_shader_handle_t vsh = *to_shader_ud(L, 1);
-		bgfx_shader_handle_t fsh = *to_shader_ud(L, 2);
-
-		*ud = bgfx_create_program(vsh, fsh, false);
+		if (compute) {
+			*ud = bgfx_create_compute_program(vsh, true);
+		}
+		else {
+			*ud = bgfx_create_program(vsh, fsh, true);
+		}
 
 		luaL_getmetatable(L, "bgfx_program");
 		lua_setmetatable(L, -2);
@@ -993,18 +990,22 @@ static const luaL_Reg m[] = {
 					auto val = format_lookup.find(v);
 					if (val != format_lookup.end()) {
 						attrib = val->second;
-						if (attrib == BGFX_ATTRIB_COLOR0 || attrib == BGFX_ATTRIB_COLOR1) {
-							//normalized = true;
-						}
 					}
 					return;
 				} else if (key == "size") {
 					size = (uint8_t)atoi(v);
 					return;
+				} else if (key == "normalized") {
+					normalized = true;
+					return;
 				}
 			});
 
+			if (normalized) {
+				printf("normalizing\n");
+			}
 			bgfx_vertex_decl_add(decl, attrib, size, type, normalized, as_int);
+			printf("\n");
 		});
 
 		bgfx_vertex_decl_end(decl);
@@ -1015,12 +1016,18 @@ static const luaL_Reg m[] = {
 	{ "new_vertex_buffer", [](lua_State *L) {
 		bgfx_vertex_buffer_handle_t *ud = (bgfx_vertex_buffer_handle_t*)lua_newuserdata(L, sizeof(bgfx_vertex_buffer_handle_t));
 
-		uint32_t size    = lua_tonumber(L, 2);
-		const bgfx_memory_t *mem = bgfx_copy(lua_touserdata(L, 1), size);
+		if (!lua_isstring(L, 1)) {
+			lua_pushboolean(L, 0);
+			return 1;
+		}
+
+		size_t size = 0;
+		const char *data = lua_tolstring(L, 1, &size);
+		const bgfx_memory_t *mem = bgfx_copy(data, size);
 
 		// this is absolutely going to segfault when gc happens
 		// const bgfx_memory_t *mem = bgfx_make_ref(data, size);
-		bgfx_vertex_decl_t *decl = to_vertex_format_ud(L, 3);
+		bgfx_vertex_decl_t *decl = to_vertex_format_ud(L, 2);
 
 		*ud = bgfx_create_vertex_buffer(mem, decl, 0);
 
@@ -1147,11 +1154,6 @@ extern "C" LUA_EXPORT int luaopen_bgfx(lua_State*);
 
 LUA_EXPORT
 int luaopen_bgfx(lua_State *L) {
-	luaL_newmetatable(L, "bgfx_shader");
-	luaL_register(L, NULL, shader_fn);
-	lua_pushvalue(L, -1);
-	lua_setfield(L, -1, "__index");
-
 	luaL_newmetatable(L, "bgfx_program");
 	luaL_register(L, NULL, program_fn);
 	lua_pushvalue(L, -1);

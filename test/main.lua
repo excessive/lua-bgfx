@@ -1,32 +1,13 @@
--- #!/usr/bin/env luajit
-package.cpath = package.cpath .. ";../bin/?.dll;../bin/?.so"
-
 local bgfx = require "bgfx"
-
--- require "love"
--- require "love.filesystem"
--- local function get_low(a)
--- 	local m = math.huge
--- 	for k,v in pairs(a) do
--- 		if k < m then
--- 			m = k
--- 		end
--- 	end
--- 	return a[m]
--- end
--- love.filesystem.init(get_low(arg))
--- love.filesystem.setSource(love.filesystem.getWorkingDirectory())
-
 local cpml = require "cpml"
 local iqm  = require "iqm"
 local model, program
 
-local function load()
+function love.load()
 	bgfx.init(true)
 	bgfx.reset(1280, 720, { "vsync" })
 	bgfx.set_debug {
-		"stats",
-		-- "wireframe"
+		"stats"
 	}
 
 	local info = bgfx.get_renderer_info()
@@ -42,17 +23,13 @@ local function load()
 	bgfx.set_view_clear(0, { "color", "depth" }, 0x303030ff, 1.0, 0)
 	bgfx.set_view_name(0, "igor")
 
-	local vsb = love.filesystem.newFileData("assets/shaders/bin/test.vs.bin")
-	local fsb = love.filesystem.newFileData("assets/shaders/bin/test.fs.bin")
 	program = bgfx.new_program(
-		bgfx.new_shader(vsb:getPointer(), vsb:getSize()),
-		bgfx.new_shader(fsb:getPointer(), fsb:getSize())
+		love.filesystem.read("assets/shaders/bin/test.vs.bin"),
+		love.filesystem.read("assets/shaders/bin/test.fs.bin")
 	)
-	vsb = nil
-	fsb = nil
 end
 
-local function draw()
+function love.draw()
 	bgfx.set_marker("miku")
 	bgfx.debug_text_clear()
 	bgfx.debug_text_print(0, 0, 0x6f, "ayy lmao")
@@ -86,33 +63,55 @@ local function draw()
 	bgfx.frame()
 end
 
-local function quit()
+function love.quit()
+	model   = nil
+	program = nil
+
 	bgfx.shutdown()
 end
 
-require "love.event"
-require "love.timer"
-require "love.keyboard"
+function love.run()
+	love.event.pump()
 
-love.event.pump()
-if load then load() end
-while true do
-	if love.event then
-		love.event.pump()
-		for name, a,b,c,d,e,f in love.event.poll() do
-			if name == "keypressed" and a == "escape" and
-				(love.keyboard.isDown "lshift" or love.keyboard.isDown "rshift")
-			then
-				love.event.quit()
-			end
-			if name == "quit" then
-				if not quit() then
-					return
+	if love.load then love.load(arg) end
+
+	collectgarbage "collect"
+
+	if love.timer then love.timer.step() end
+
+	local dt = 0
+	while true do
+		if love.event then
+			love.event.pump()
+			for name, a,b,c,d,e,f in love.event.poll() do
+				if name == "keypressed" and a == "escape" and
+					(love.keyboard.isDown "lshift" or love.keyboard.isDown "rshift")
+				then
+					love.event.quit()
+				elseif name == "quit" then
+					if not love.quit or not love.quit() then
+						return a
+					end
 				end
+				love.handlers[name](a, b, c, d, e, f)
 			end
 		end
+
+		-- Update dt, as we'll be passing it to update
+		if love.timer then
+			love.timer.step()
+			dt = love.timer.getDelta()
+		end
+
+		if love.update then
+			love.update(dt)
+		end
+
+		if love.draw then
+			love.draw()
+		end
+
+		collectgarbage("step")
+		love.timer.sleep(0.001)
 	end
-	draw()
-	collectgarbage("step")
-	love.timer.sleep(0.001)
 end
