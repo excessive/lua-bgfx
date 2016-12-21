@@ -282,7 +282,7 @@ function iqm.load(file, save_data)
 			size        = va.size,
 			offset      = va.offset,
 			format      = format,
-			love_type   = translate_bgfx(type)
+			bgfx_type   = translate_bgfx(type)
 		})
 
 		break end
@@ -367,11 +367,16 @@ function iqm.load(file, save_data)
 
 	local layout = {}
 	for i, va in ipairs(found_types) do
-		layout[i] = { attrib=va.love_type, type=va.format, size=va.size }
+		layout[i] = {
+			attrib     = va.bgfx_type,
+			type       = va.format,
+			size       = va.size,
+			normalized = va.bgfx_type == "color0"
+		}
 	end
 
 	local fmt = bgfx.new_vertex_format(layout)
-	local vb  = bgfx.new_vertex_buffer(filedata:getPointer(), filedata:getSize(), fmt)
+	local vb  = bgfx.new_vertex_buffer(filedata:getString(), fmt)
 	local ib  = bgfx.new_index_buffer(indices)
 
 	-- Decode mesh/material names.
