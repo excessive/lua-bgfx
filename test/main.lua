@@ -1,7 +1,7 @@
 local bgfx = require "bgfx"
 local cpml = require "cpml"
 local iqm  = require "iqm"
-local model, program
+local model, program, tex
 
 function love.load()
 	bgfx.init(true)
@@ -17,6 +17,9 @@ function love.load()
 	-- for k, v in pairs(hmd) do
 	-- 	print(k, v)
 	-- end
+
+	local _tex = love.image.newImageData("assets/textures/grid.png")
+	tex = bgfx.new_texture(_tex:getString(), _tex:getWidth(), _tex:getHeight())
 
 	model = iqm.load("assets/models/chair.iqm")
 

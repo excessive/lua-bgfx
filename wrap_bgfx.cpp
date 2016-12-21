@@ -76,6 +76,12 @@ static bgfx_program_handle_t *to_program_ud(lua_State *L, int index) {
 	return ud;
 }
 
+static bgfx_texture_handle_t *to_texture_ud(lua_State *L, int index) {
+	bgfx_texture_handle_t *ud = (bgfx_texture_handle_t*)lua_touserdata(L, index);
+	if (ud == NULL) luaL_typerror(L, index, "bgfx_texture");
+	return ud;
+}
+
 static bgfx_vertex_decl_t *to_vertex_format_ud(lua_State *L, int index) {
 	bgfx_vertex_decl_t *ud = (bgfx_vertex_decl_t*)lua_touserdata(L, index);
 	if (ud == NULL) luaL_typerror(L, index, "bgfx_vertex_format");
@@ -105,6 +111,22 @@ static const luaL_Reg program_fn[] = {
 		char buff[32];
 		sprintf(buff, "%p", to_program_ud(L, 1));
 		lua_pushfstring(L, "bgfx_program (%s)", buff);
+		return 1;
+	} },
+	{ NULL, NULL }
+};
+
+static const luaL_Reg texture_fn[] = {
+	{ "__gc",  [](lua_State *L) {
+		printf("gc texture\n");
+		bgfx_texture_handle_t *ud = to_texture_ud(L, 1);
+		bgfx_destroy_texture(*ud);
+		return 0;
+	} },
+	{ "__tostring", [](lua_State *L) {
+		char buff[32];
+		sprintf(buff, "%p", to_texture_ud(L, 1));
+		lua_pushfstring(L, "bgfx_texture (%s)", buff);
 		return 1;
 	} },
 	{ NULL, NULL }
@@ -910,6 +932,35 @@ static const luaL_Reg m[] = {
 		return 0;
 	} },
 
+	// bgfx.new_texture(data, width, height)
+	{ "new_texture", [](lua_State *L) {
+		if (!lua_isstring(L, 1)) {
+			lua_pushboolean(L, 0);
+			return 1;
+		}
+
+		size_t size = 0;
+		const char *data = lua_tolstring(L, 1, &size);
+
+		bgfx_texture_info_t info;
+		info.format       = BGFX_TEXTURE_FORMAT_RGBA8;
+		info.storageSize  = size;
+		info.width        = luaL_checkinteger(L, 2);
+		info.height       = luaL_checkinteger(L, 3);
+		info.depth        = 0;
+		info.numMips      = 0;
+		info.bitsPerPixel = 32;
+		info.cubeMap      = false;
+
+		bgfx_texture_handle_t *ud = (bgfx_texture_handle_t*)lua_newuserdata(L, sizeof(bgfx_texture_handle_t));
+		*ud = bgfx_create_texture(bgfx_copy(data, size), 0, 0, &info);
+
+		luaL_getmetatable(L, "bgfx_texture");
+		lua_setmetatable(L, -2);
+
+		return 1;
+	} },
+
 	{ "new_program", [](lua_State *L) {
 		bool compute = false;
 
@@ -1173,6 +1224,11 @@ extern "C" LUA_EXPORT int luaopen_bgfx(lua_State*);
 
 LUA_EXPORT
 int luaopen_bgfx(lua_State *L) {
+	luaL_newmetatable(L, "bgfx_texture");
+	luaL_register(L, NULL, texture_fn);
+	lua_pushvalue(L, -1);
+	lua_setfield(L, -1, "__index");
+
 	luaL_newmetatable(L, "bgfx_program");
 	luaL_register(L, NULL, program_fn);
 	lua_pushvalue(L, -1);
