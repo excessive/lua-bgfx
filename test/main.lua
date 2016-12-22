@@ -3,9 +3,16 @@ local cpml = require "cpml"
 local iqm  = require "iqm"
 local model, program, tex, sampler
 
+local camera = require "camera" {
+	orbit_offset = cpml.vec3(0, 0, -3),
+	offset       = cpml.vec3(0, 0, -1)
+}
+
+local w, h = love.window.getMode()
+
 function love.load()
-	bgfx.init(true)
-	bgfx.reset(1280, 720, { "vsync" })
+	bgfx.init()
+	bgfx.reset(w, h, { "vsync" })
 	bgfx.set_debug { "text" }
 
 	local info = bgfx.get_renderer_info()
@@ -30,22 +37,23 @@ function love.load()
 		love.filesystem.read("assets/shaders/bin/test.vs.bin"),
 		love.filesystem.read("assets/shaders/bin/test.fs.bin")
 	)
+
+	love.mouse.setRelativeMode(true)
+end
+
+function love.mousemoved(_, _, dx, dy)
+	camera:rotate_xy(dx, dy)
 end
 
 function love.draw()
 	bgfx.set_marker("miku")
 	bgfx.debug_text_clear()
 	bgfx.debug_text_print(0, 0, 0x6f, "ayy lmao")
-	bgfx.set_view_rect(0, 0, 0, 1280, 720)
+	bgfx.set_view_rect(0, 0, 0, w, h)
 	bgfx.touch(0)
 
-	local p = cpml.mat4():perspective(60, 1280/720, 0.1, 100.0)
-	local v = cpml.mat4():look_at(
-		cpml.vec3(0, -3.0, 1.5),
-		cpml.vec3(0, 0.25, 0.5),
-		cpml.vec3.unit_z
-	)
-	bgfx.set_view_transform(0, v, p)
+	camera:update(w, h)
+	bgfx.set_view_transform(0, camera.view, camera.projection)
 
 	for _, mesh in ipairs(model) do
 		local m = cpml.mat4()
