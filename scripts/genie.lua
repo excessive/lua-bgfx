@@ -1,6 +1,7 @@
 local BASE_DIR   = path.getabsolute("..")
 local EXTERN_DIR = path.join(BASE_DIR, "extern")
 local OVR_DIR    = path.join(EXTERN_DIR, "LibOVR")
+local use_ovr    = false
 
 solution "lua-bgfx" do
 	uuid "8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942"
@@ -140,36 +141,14 @@ project "BGFX" do
 		BX_DIR
 	}
 	files {
-		path.join(BGFX_SRC_DIR, "bgfx.cpp"),
-		path.join(BGFX_SRC_DIR, "debug_renderdoc.cpp"),
-		path.join(BGFX_SRC_DIR, "glcontext_egl.cpp"),
-		path.join(BGFX_SRC_DIR, "glcontext_glx.cpp"),
-		path.join(BGFX_SRC_DIR, "glcontext_ppapi.cpp"),
-		path.join(BGFX_SRC_DIR, "glcontext_wgl.cpp"),
-		path.join(BGFX_SRC_DIR, "hmd_openvr.cpp"),
-		path.join(BGFX_SRC_DIR, "hmd_ovr.cpp"),
-		path.join(BGFX_SRC_DIR, "image.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_d3d11.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_d3d12.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_d3d9.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_gl.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_null.cpp"),
-		path.join(BGFX_SRC_DIR, "renderer_vk.cpp"),
-		path.join(BGFX_SRC_DIR, "shader_dx9bc.cpp"),
-		path.join(BGFX_SRC_DIR, "shader_dxbc.cpp"),
-		path.join(BGFX_SRC_DIR, "shader_spirv.cpp"),
-		path.join(BGFX_SRC_DIR, "shader.cpp"),
-		path.join(BGFX_SRC_DIR, "topology.cpp"),
-		path.join(BGFX_SRC_DIR, "vertexdecl.cpp")
-	}
-	defines {
-		-- this was causing crashes on some systems.
-		"BGFX_CONFIG_MULTITHREADED=0"
+		path.join(BGFX_SRC_DIR, "amalgamated.cpp"),
+
 	}
 	configuration {"vs*"}
-	if os.isdir(OVR_DIR) then
+	if use_ovr and os.isdir(OVR_DIR) then
 		defines {
 			"BGFX_CONFIG_USE_OVR=1",
+			"BGFX_CONFIG_MULTITHREADED=0"
 		}
 		link_ovr()
 	end
@@ -230,7 +209,7 @@ project "lua-bgfx" do
 		"lua51",
 		"psapi"
 	}
-	if os.isdir(OVR_DIR) then
+	if use_ovr and os.isdir(OVR_DIR) then
 		link_ovr()
 	end
 

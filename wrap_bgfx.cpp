@@ -8,7 +8,7 @@ extern "C" {
 //
 // Lua doesn't really do C++-style magic anyhow.
 #include <bgfx/c99/bgfx.h>
-#include <bgfx/c99/bgfxplatform.h>
+#include <bgfx/c99/platform.h>
 }
 
 #include <bx/fpumath.h>
@@ -444,7 +444,6 @@ const char *renderer2str(bgfx_renderer_type_t t) {
 		case BGFX_RENDERER_TYPE_OPENGLES:   return "opengles";
 		case BGFX_RENDERER_TYPE_OPENGL:     return "opengl";
 		case BGFX_RENDERER_TYPE_VULKAN:     return "vulkan";
-		case BGFX_RENDERER_TYPE_NULL:       return "null";
 		default: break;
 	}
 	return "invalid";
@@ -524,22 +523,15 @@ static const luaL_Reg m[] = {
 			if (!SDL_GetWindowWMInfo(_window, &wmi)) {
 				return 0;
 			}
+			memset(&data, 0, sizeof(bgfx_platform_data_t));
 #if BX_PLATFORM_LINUX || BX_PLATFORM_BSD
 			data.ndt          = wmi.info.x11.display;
 			data.nwh          = (void*)(uintptr_t)wmi.info.x11.window;
 #elif BX_PLATFORM_OSX
-			data.ndt          = NULL;
 			data.nwh          = wmi.info.cocoa.window;
 #elif BX_PLATFORM_WINDOWS
-			data.ndt          = NULL;
 			data.nwh          = wmi.info.win.window;
-#elif BX_PLATFORM_STEAMLINK
-			data.ndt          = wmi.info.vivante.display;
-			data.nwh          = wmi.info.vivante.window;
 #endif // BX_PLATFORM_
-			data.context      = NULL;
-			data.backBuffer   = NULL;
-			data.backBufferDS = NULL;
 
 			bgfx_set_platform_data(&data);
 		}
@@ -651,7 +643,7 @@ static const luaL_Reg m[] = {
 
 	// bgfx.frame()
 	{ "frame", [](lua_State *L) {
-		int r = bgfx_frame();
+		int r = bgfx_frame(false);
 		lua_pushnumber(L, (double)r);
 		return 1;
 	} },
@@ -911,11 +903,17 @@ static const luaL_Reg m[] = {
 		size_t size = 0;
 		const char *data = lua_tolstring(L, 1, &size);
 
+		bool gen_mips = false;
+		if (lua_isboolean(L, 4)) {
+			gen_mips = lua_toboolean(L, 4) > 0;
+		}
+
 		bgfx_texture_handle_t *ud = (bgfx_texture_handle_t*)lua_newuserdata(L, sizeof(bgfx_texture_handle_t));
 		*ud = bgfx_create_texture_2d(
 			luaL_checkinteger(L, 2),
 			luaL_checkinteger(L, 3),
-			0,
+			gen_mips,
+			1,
 			BGFX_TEXTURE_FORMAT_RGBA8,
 			0,
 			bgfx_copy(data, size)

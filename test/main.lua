@@ -17,11 +17,11 @@ function love.load()
 	-- end
 
 	local _tex = love.image.newImageData("assets/textures/grid.png")
-	tex = bgfx.new_texture(_tex:getString(), _tex:getWidth(), _tex:getHeight())
+	tex = bgfx.new_texture(_tex:getString(), _tex:getWidth(), _tex:getHeight(), false)
 	sampler = bgfx.new_uniform("s_tex", "int", 1)
 
-	-- model = iqm.load("assets/models/StagePolish0.11.iqm")
-	model = iqm.load("assets/models/chair.iqm")
+	model = iqm.load("assets/models/StagePolish0.11.iqm")
+	-- model = iqm.load("assets/models/chair.iqm")
 
 	bgfx.set_view_clear(0, { "color", "depth" }, 0x303030ff, 1.0, 0)
 	bgfx.set_view_name(0, "igor")
