@@ -16,50 +16,7 @@ extern "C" {
 #include <cstring>
 #include <map>
 
-namespace {
-	void perspective(
-		float *_result,
-		float aspect,
-		float fovy     = 60.0f,
-		float zNear    = 0.1f,
-		bool  infinite = true,
-		float zFar     = 1000.0f
-	) {
-		memset(_result, 0, sizeof(float)*16);
-
-		float range  = tan(fovy / 2.0f);
-
-		bool ogl_ndc = true;
-		// for OpenGL
-		if (ogl_ndc) {
-			_result[11] = -1.0f;
-		}
-		else {
-			_result[11] = 1.0f;
-		}
-
-		if (infinite) {
-			range *= zNear;
-
-			const float ep     = 0.0f;
-			const float left   = -range * aspect;
-			const float right  =  range * aspect;
-			const float bottom = -range;
-			const float top    =  range;
-
-			_result[0] = (2.0f * zNear) / (right - left);
-			_result[5] = (2.0f * zNear) / (top - bottom);
-			_result[9] = ep - 1.0f;
-			_result[14] = (ep - 2.0f) * zNear;
-		}
-		else {
-			_result[0] = 1.0f / (aspect * range);
-			_result[5] = 1.0f / (range);
-			_result[9] = -(zFar + zNear) / (zFar - zNear);
-			_result[14] = -(2.0f * zFar * zNear) / (zFar - zNear);
-		}
-	}
-}
+static bool shutdown = false;
 
 #ifndef luaL_typerror
 LUALIB_API int luaL_typerror (lua_State *L, int narg, const char *tname) {
@@ -70,45 +27,29 @@ LUALIB_API int luaL_typerror (lua_State *L, int narg, const char *tname) {
 }
 #endif
 
-static bgfx_program_handle_t *to_program_ud(lua_State *L, int index) {
-	bgfx_program_handle_t *ud = (bgfx_program_handle_t*)lua_touserdata(L, index);
-	if (ud == NULL) luaL_typerror(L, index, "bgfx_program");
-	return ud;
+#define UD_HANDLE_TYPE(name) \
+static bgfx_##name##_handle_t *to_##name##_ud(lua_State *L, int index) { \
+	bgfx_##name##_handle_t *ud = (bgfx_##name##_handle_t*)lua_touserdata(L, index); \
+	if (ud == NULL) luaL_typerror(L, index, #name); \
+	return ud; \
 }
 
-static bgfx_texture_handle_t *to_texture_ud(lua_State *L, int index) {
-	bgfx_texture_handle_t *ud = (bgfx_texture_handle_t*)lua_touserdata(L, index);
-	if (ud == NULL) luaL_typerror(L, index, "bgfx_texture");
-	return ud;
-}
+UD_HANDLE_TYPE(program)
+UD_HANDLE_TYPE(texture)
+UD_HANDLE_TYPE(uniform)
+UD_HANDLE_TYPE(vertex_buffer)
+UD_HANDLE_TYPE(index_buffer)
 
-static bgfx_uniform_handle_t *to_uniform_ud(lua_State *L, int index) {
-	bgfx_uniform_handle_t *ud = (bgfx_uniform_handle_t*)lua_touserdata(L, index);
-	if (ud == NULL) luaL_typerror(L, index, "bgfx_uniform");
-	return ud;
-}
-
-static bgfx_vertex_decl_t *to_vertex_format_ud(lua_State *L, int index) {
+static bgfx_vertex_decl_t *to_vertex_decl_ud(lua_State *L, int index) {
 	bgfx_vertex_decl_t *ud = (bgfx_vertex_decl_t*)lua_touserdata(L, index);
-	if (ud == NULL) luaL_typerror(L, index, "bgfx_vertex_format");
-	return ud;
-}
-
-static bgfx_vertex_buffer_handle_t *to_vertex_buffer_ud(lua_State *L, int index) {
-	bgfx_vertex_buffer_handle_t *ud = (bgfx_vertex_buffer_handle_t*)lua_touserdata(L, index);
-	if (ud == NULL) luaL_typerror(L, index, "bgfx_vertex_buffer");
-	return ud;
-}
-
-static bgfx_index_buffer_handle_t *to_index_buffer_ud(lua_State *L, int index) {
-	bgfx_index_buffer_handle_t *ud = (bgfx_index_buffer_handle_t*)lua_touserdata(L, index);
-	if (ud == NULL) luaL_typerror(L, index, "bgfx_index_buffer");
+	if (ud == NULL) luaL_typerror(L, index, "bgfx_vertex_decl");
 	return ud;
 }
 
 static const luaL_Reg program_fn[] = {
 	{ "__gc",  [](lua_State *L) {
-		printf("gc shader program\n");
+		if (shutdown) { return 0; }
+		//printf("gc shader program\n");
 		bgfx_program_handle_t *ud = to_program_ud(L, 1);
 		bgfx_destroy_program(*ud);
 		return 0;
@@ -124,7 +65,8 @@ static const luaL_Reg program_fn[] = {
 
 static const luaL_Reg texture_fn[] = {
 	{ "__gc",  [](lua_State *L) {
-		printf("gc texture\n");
+		if (shutdown) { return 0; }
+		//printf("gc texture\n");
 		bgfx_texture_handle_t *ud = to_texture_ud(L, 1);
 		bgfx_destroy_texture(*ud);
 		return 0;
@@ -140,7 +82,8 @@ static const luaL_Reg texture_fn[] = {
 
 static const luaL_Reg uniform_fn[] = {
 	{ "__gc",  [](lua_State *L) {
-		printf("gc uniform\n");
+		if (shutdown) { return 0; }
+		//printf("gc uniform\n");
 		bgfx_uniform_handle_t *ud = to_uniform_ud(L, 1);
 		bgfx_destroy_uniform(*ud);
 		return 0;
@@ -157,8 +100,8 @@ static const luaL_Reg uniform_fn[] = {
 static const luaL_Reg vertex_format_fn[] = {
 	{ "__tostring", [](lua_State *L) {
 		char buff[32];
-		sprintf(buff, "%p", to_vertex_format_ud(L, 1));
-		lua_pushfstring(L, "bgfx_vertex_format (%s)", buff);
+		sprintf(buff, "%p", to_vertex_decl_ud(L, 1));
+		lua_pushfstring(L, "bgfx_vertex_decl (%s)", buff);
 		return 1;
 	} },
 	{ NULL, NULL }
@@ -166,7 +109,8 @@ static const luaL_Reg vertex_format_fn[] = {
 
 static const luaL_Reg vertex_buffer_fn[] = {
 	{ "__gc",  [](lua_State *L) {
-		printf("gc vb\n");
+		if (shutdown) { return 0; }
+		//printf("gc vb\n");
 		bgfx_vertex_buffer_handle_t *ud = to_vertex_buffer_ud(L, 1);
 		bgfx_destroy_vertex_buffer(*ud);
 		return 0;
@@ -182,7 +126,8 @@ static const luaL_Reg vertex_buffer_fn[] = {
 
 static const luaL_Reg index_buffer_fn[] = {
 	{ "__gc",  [](lua_State *L) {
-		printf("gc ib\n");
+		if (shutdown) { return 0; }
+		//printf("gc ib\n");
 		bgfx_index_buffer_handle_t *ud = to_index_buffer_ud(L, 1);
 		bgfx_destroy_index_buffer(*ud);
 		return 0;
@@ -607,6 +552,7 @@ static const luaL_Reg m[] = {
 
 	// bgfx.shutdown()
 	{ "shutdown", [](lua_State *) {
+		shutdown = true;
 		bgfx_shutdown();
 		if (_window) {
 			SDL_DestroyWindow(_window);
@@ -634,7 +580,7 @@ static const luaL_Reg m[] = {
 		int n = lua_gettop(L);
 		lua_assert(n >= 0 || n <= 2);
 		uint8_t attr = n >= 1 ? (uint8_t)lua_tonumber(L, 1) : 0;
-		bool small   = n >= 2 ? (bool)lua_toboolean(L, 2) : false;
+		bool small   = n >= 2 ? lua_toboolean(L, 2) > 0 : false;
 		bgfx_dbg_text_clear(attr, small);
 		return 0;
 	} },
@@ -986,7 +932,7 @@ static const luaL_Reg m[] = {
 		const char *type_raw = luaL_checkstring(L, 2);
 		uint16_t count = 1;
 		if (lua_isnumber(L, 3)) {
-			count = lua_tonumber(L, 3);
+			count = lua_tointeger(L, 3);
 		}
 
 		bgfx_uniform_type_t type = BGFX_UNIFORM_TYPE_COUNT;
@@ -1033,7 +979,7 @@ static const luaL_Reg m[] = {
 
 		uint16_t count = 1;
 		if (lua_isnumber(L, 3)) {
-			count = lua_tonumber(L, 3);
+			count = lua_tointeger(L, 3);
 		}
 
 		bgfx_set_uniform(*uniform, data, count);
@@ -1088,7 +1034,7 @@ static const luaL_Reg m[] = {
 		bgfx_renderer_type_t renderer = bgfx_get_renderer_type();
 		bgfx_vertex_decl_begin(decl, renderer);
 
-		luaL_getmetatable(L, "bgfx_vertex_format");
+		luaL_getmetatable(L, "bgfx_vertex_decl");
 		lua_setmetatable(L, -2);
 
 		static std::map<const char*, bgfx_attrib_t, fuck_off_cpp> format_lookup = {
@@ -1178,7 +1124,7 @@ static const luaL_Reg m[] = {
 
 		// this is absolutely going to segfault when gc happens
 		// const bgfx_memory_t *mem = bgfx_make_ref(data, size);
-		bgfx_vertex_decl_t *decl = to_vertex_format_ud(L, 2);
+		bgfx_vertex_decl_t *decl = to_vertex_decl_ud(L, 2);
 
 		*ud = bgfx_create_vertex_buffer(mem, decl, 0);
 
@@ -1320,7 +1266,7 @@ int luaopen_bgfx(lua_State *L) {
 	lua_pushvalue(L, -1);
 	lua_setfield(L, -1, "__index");
 
-	luaL_newmetatable(L, "bgfx_vertex_format");
+	luaL_newmetatable(L, "bgfx_vertex_decl");
 	luaL_register(L, NULL, vertex_format_fn);
 	lua_pushvalue(L, -1);
 	lua_setfield(L, -1, "__index");
@@ -1340,7 +1286,9 @@ int luaopen_bgfx(lua_State *L) {
 	luaL_register(L, "bgfx", m);
 
 	// shut up gcc when we aren't doing any stack dumps
+	#ifdef __GCC__
 	(void)stack_dump;
+	#endif
 
 	return 1;
 }
