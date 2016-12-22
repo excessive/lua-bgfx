@@ -502,21 +502,14 @@ static SDL_Window *_window = NULL;
 
 static const luaL_Reg m[] = {
 	// bgfx.init()
-	// TODO: actually take some args for this
 	{ "init", [](lua_State *L) {
-		bool use_sdl = false;
+		bool use_sdl = true;
 		if (lua_isboolean(L, 1)) {
 			use_sdl = lua_toboolean(L, 1) ? true : false;
 		}
 		if (use_sdl) {
-			SDL_InitSubSystem(SDL_INIT_VIDEO);
-			_window = SDL_CreateWindow("bgfx!",
-				SDL_WINDOWPOS_UNDEFINED,
-				SDL_WINDOWPOS_UNDEFINED,
-				1280, 720, 0
-				| SDL_WINDOW_ALLOW_HIGHDPI
-				| SDL_WINDOW_OPENGL
-			);
+			_window = SDL_GL_GetCurrentWindow();
+
 			bgfx_platform_data_t data;
 			SDL_SysWMinfo wmi;
 			SDL_VERSION(&wmi.version);
@@ -546,10 +539,6 @@ static const luaL_Reg m[] = {
 	{ "shutdown", [](lua_State *) {
 		shutdown = true;
 		bgfx_shutdown();
-		if (_window) {
-			SDL_DestroyWindow(_window);
-			SDL_QuitSubSystem(SDL_INIT_VIDEO);
-		}
 		return 0;
 	} },
 
