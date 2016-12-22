@@ -163,6 +163,8 @@ project "BGFX" do
 	}
 	configuration {"gmake"}
 	buildoptions {
+		"-std=c++11",
+		"-fno-strict-aliasing",
 		"-fpic",
 		"-mstackrealign"
 	}
