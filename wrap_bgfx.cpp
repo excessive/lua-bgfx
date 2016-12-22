@@ -503,11 +503,11 @@ static SDL_Window *_window = NULL;
 static const luaL_Reg m[] = {
 	// bgfx.init()
 	{ "init", [](lua_State *L) {
-		bool use_sdl = true;
+		bool use_sdl_context = true;
 		if (lua_isboolean(L, 1)) {
-			use_sdl = lua_toboolean(L, 1) ? true : false;
+			use_sdl_context = lua_toboolean(L, 1) ? true : false;
 		}
-		if (use_sdl) {
+		if (use_sdl_context) {
 			_window = SDL_GL_GetCurrentWindow();
 
 			bgfx_platform_data_t data;
@@ -525,6 +525,8 @@ static const luaL_Reg m[] = {
 #elif BX_PLATFORM_WINDOWS
 			data.nwh          = wmi.info.win.window;
 #endif // BX_PLATFORM_
+			data.context      = SDL_GL_GetCurrentContext();
+			SDL_GL_MakeCurrent(_window, NULL);
 
 			bgfx_set_platform_data(&data);
 		}
