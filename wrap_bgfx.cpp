@@ -446,6 +446,83 @@ static std::map<const char*, uint32_t, fuck_off_cpp> texture_lookup = {
 	//{ "border_color", BGFX_TEXTURE_BORDER_COLOR }
 };
 
+static std::map<const char*, bgfx_texture_format_t, fuck_off_cpp> texture_format_lookup = {
+	{ "bc1", BGFX_TEXTURE_FORMAT_BC1 },
+	{ "bc2", BGFX_TEXTURE_FORMAT_BC2 },
+	{ "bc3", BGFX_TEXTURE_FORMAT_BC3 },
+	{ "bc4", BGFX_TEXTURE_FORMAT_BC4 },
+	{ "bc5", BGFX_TEXTURE_FORMAT_BC5 },
+	{ "bc6h", BGFX_TEXTURE_FORMAT_BC6H },
+	{ "bc7", BGFX_TEXTURE_FORMAT_BC7 },
+	{ "etc1", BGFX_TEXTURE_FORMAT_ETC1 },
+	{ "etc2", BGFX_TEXTURE_FORMAT_ETC2 },
+	{ "etc2a", BGFX_TEXTURE_FORMAT_ETC2A },
+	{ "etc2a1", BGFX_TEXTURE_FORMAT_ETC2A1 },
+	{ "ptc12", BGFX_TEXTURE_FORMAT_PTC12 },
+	{ "ptc14", BGFX_TEXTURE_FORMAT_PTC14 },
+	{ "ptc12a", BGFX_TEXTURE_FORMAT_PTC12A },
+	{ "ptc14a", BGFX_TEXTURE_FORMAT_PTC14A },
+	{ "ptc22", BGFX_TEXTURE_FORMAT_PTC22 },
+	{ "ptc24", BGFX_TEXTURE_FORMAT_PTC24 },
+	{ "r1", BGFX_TEXTURE_FORMAT_R1 },
+	{ "a8", BGFX_TEXTURE_FORMAT_A8 },
+	{ "r8", BGFX_TEXTURE_FORMAT_R8 },
+	{ "r8i", BGFX_TEXTURE_FORMAT_R8I },
+	{ "r8u", BGFX_TEXTURE_FORMAT_R8U },
+	{ "r8s", BGFX_TEXTURE_FORMAT_R8S },
+	{ "r16", BGFX_TEXTURE_FORMAT_R16 },
+	{ "r16i", BGFX_TEXTURE_FORMAT_R16I },
+	{ "r16u", BGFX_TEXTURE_FORMAT_R16U },
+	{ "r16f", BGFX_TEXTURE_FORMAT_R16F },
+	{ "r16s", BGFX_TEXTURE_FORMAT_R16S },
+	{ "r32i", BGFX_TEXTURE_FORMAT_R32I },
+	{ "r32u", BGFX_TEXTURE_FORMAT_R32U },
+	{ "r32f", BGFX_TEXTURE_FORMAT_R32F },
+	{ "rg8", BGFX_TEXTURE_FORMAT_RG8 },
+	{ "rg8i", BGFX_TEXTURE_FORMAT_RG8I },
+	{ "rg8u", BGFX_TEXTURE_FORMAT_RG8U },
+	{ "rg8s", BGFX_TEXTURE_FORMAT_RG8S },
+	{ "rg16", BGFX_TEXTURE_FORMAT_RG16 },
+	{ "rg16i", BGFX_TEXTURE_FORMAT_RG16I },
+	{ "rg16u", BGFX_TEXTURE_FORMAT_RG16U },
+	{ "rg16f", BGFX_TEXTURE_FORMAT_RG16F },
+	{ "rg16s", BGFX_TEXTURE_FORMAT_RG16S },
+	{ "rg32i", BGFX_TEXTURE_FORMAT_RG32I },
+	{ "rg32u", BGFX_TEXTURE_FORMAT_RG32U },
+	{ "rg32f", BGFX_TEXTURE_FORMAT_RG32F },
+	{ "rgb8", BGFX_TEXTURE_FORMAT_RGB8 },
+	{ "rgb8i", BGFX_TEXTURE_FORMAT_RGB8I },
+	{ "rgb8u", BGFX_TEXTURE_FORMAT_RGB8U },
+	{ "rgb8s", BGFX_TEXTURE_FORMAT_RGB8S },
+	{ "rgb9e5f", BGFX_TEXTURE_FORMAT_RGB9E5F },
+	{ "bgra8", BGFX_TEXTURE_FORMAT_BGRA8 },
+	{ "rgba8", BGFX_TEXTURE_FORMAT_RGBA8 },
+	{ "rgba8i", BGFX_TEXTURE_FORMAT_RGBA8I },
+	{ "rgba8u", BGFX_TEXTURE_FORMAT_RGBA8U },
+	{ "rgba8s", BGFX_TEXTURE_FORMAT_RGBA8S },
+	{ "rgba16", BGFX_TEXTURE_FORMAT_RGBA16 },
+	{ "rgba16i", BGFX_TEXTURE_FORMAT_RGBA16I },
+	{ "rgba16u", BGFX_TEXTURE_FORMAT_RGBA16U },
+	{ "rgba16f", BGFX_TEXTURE_FORMAT_RGBA16F },
+	{ "rgba16s", BGFX_TEXTURE_FORMAT_RGBA16S },
+	{ "rgba32i", BGFX_TEXTURE_FORMAT_RGBA32I },
+	{ "rgba32u", BGFX_TEXTURE_FORMAT_RGBA32U },
+	{ "rgba32f", BGFX_TEXTURE_FORMAT_RGBA32F },
+	{ "r5g6b5", BGFX_TEXTURE_FORMAT_R5G6B5 },
+	{ "rgba4", BGFX_TEXTURE_FORMAT_RGBA4 },
+	{ "rgb5a1", BGFX_TEXTURE_FORMAT_RGB5A1 },
+	{ "rgb10a2", BGFX_TEXTURE_FORMAT_RGB10A2 },
+	{ "r11g11b10f", BGFX_TEXTURE_FORMAT_R11G11B10F },
+	{ "d16", BGFX_TEXTURE_FORMAT_D16 },
+	{ "d24", BGFX_TEXTURE_FORMAT_D24 },
+	{ "d24s8", BGFX_TEXTURE_FORMAT_D24S8 },
+	{ "d32", BGFX_TEXTURE_FORMAT_D32 },
+	{ "d16f", BGFX_TEXTURE_FORMAT_D16F },
+	{ "d24f", BGFX_TEXTURE_FORMAT_D24F },
+	{ "d32f", BGFX_TEXTURE_FORMAT_D32F },
+	{ "d0s8", BGFX_TEXTURE_FORMAT_D0S8 }
+};
+
 static std::map<const char*, uint32_t, fuck_off_cpp> view_lookup = {
 	{ "none",   BGFX_VIEW_NONE },
 	{ "stereo", BGFX_VIEW_STEREO }
@@ -904,6 +981,7 @@ static const luaL_Reg m[] = {
 		return 0;
 	} },
 
+	// bgfx.new_frame_buffer(width, height, format, flags)
 	{ "new_frame_buffer", [](lua_State *L) {
 		uint32_t flags = BGFX_TEXTURE_U_CLAMP | BGFX_TEXTURE_V_CLAMP;
 
@@ -912,8 +990,29 @@ static const luaL_Reg m[] = {
 
 		bgfx_texture_format_t format = BGFX_TEXTURE_FORMAT_RGBA8;
 
-		if (lua_isnumber(L, 4)) {
-			// TODO: figure out flags...
+		const char *_format = "rgba8";
+		if (lua_isstring(L, 3)) {
+			_format = lua_tostring(L, 3);
+		}
+
+		auto val = texture_format_lookup.find(_format);
+		if (val != texture_format_lookup.end()) {
+			format = val->second;
+		}
+		else {
+			lua_pushboolean(L, 0);
+			lua_pushstring(L, "Invalid texture format.");
+			return 2;
+		}
+
+		if (lua_istable(L, 4)) {
+			flags = 0;
+			table_scan(L, 4, [&](const char *, const char *v) {
+				auto val = texture_lookup.find(v);
+				if (val != texture_lookup.end()) {
+					flags |= val->second;
+				}
+			});
 		}
 
 		bgfx_frame_buffer_handle_t *ud = (bgfx_frame_buffer_handle_t*)lua_newuserdata(L, sizeof(bgfx_frame_buffer_handle_t));
@@ -940,31 +1039,42 @@ static const luaL_Reg m[] = {
 		return 1;
 	} },
 
-	// bgfx.new_texture(data, width, height)
+	// bgfx.new_texture(data, width, height, has_mips, format)
 	{ "new_texture", [](lua_State *L) {
-		if (!lua_isstring(L, 1)) {
-			lua_pushboolean(L, 0);
-			return 1;
+		const bgfx_memory_t *mem = NULL;
+		if (lua_isstring(L, 1)) {
+			size_t size = 0;
+			const char *data = lua_tolstring(L, 1, &size);
+			mem = bgfx_copy(data, size);
 		}
 
-		size_t size = 0;
-		const char *data = lua_tolstring(L, 1, &size);
-
-		bool gen_mips = false;
+		bool has_mips = false;
 		if (lua_isboolean(L, 4)) {
-			gen_mips = lua_toboolean(L, 4) > 0;
+			has_mips = lua_toboolean(L, 4) > 0;
 		}
+
+		bgfx_texture_format_t format = BGFX_TEXTURE_FORMAT_RGBA8;
+
+		const char *_format = "rgba8";
+		if (lua_isstring(L, 5)) {
+			_format = lua_tostring(L, 5);
+		}
+
+		auto val = texture_format_lookup.find(_format);
+		if (val != texture_format_lookup.end()) {
+			format = val->second;
+		}
+		else {
+			lua_pushboolean(L, 0);
+			lua_pushstring(L, "Invalid texture format.");
+			return 2;
+		}
+
+		uint16_t width  = (uint16_t)luaL_checkinteger(L, 2);
+		uint16_t height = (uint16_t)luaL_checkinteger(L, 3);
 
 		bgfx_texture_handle_t *ud = (bgfx_texture_handle_t*)lua_newuserdata(L, sizeof(bgfx_texture_handle_t));
-		*ud = bgfx_create_texture_2d(
-			luaL_checkinteger(L, 2),
-			luaL_checkinteger(L, 3),
-			gen_mips,
-			1,
-			BGFX_TEXTURE_FORMAT_RGBA8,
-			0,
-			bgfx_copy(data, size)
-		);
+		*ud = bgfx_create_texture_2d(width, height, has_mips, 1, format, 0, mem);
 
 		luaL_getmetatable(L, "bgfx_texture");
 		lua_setmetatable(L, -2);
@@ -1034,8 +1144,22 @@ static const luaL_Reg m[] = {
 			access = BGFX_ACCESS_READWRITE;
 		}
 
-		// TODO: more formats!
 		bgfx_texture_format_t format = BGFX_TEXTURE_FORMAT_RGBA8;
+
+		const char *_format = "rgba8";
+		if (lua_isstring(L, 6)) {
+			_format = lua_tostring(L, 6);
+		}
+
+		auto val = texture_format_lookup.find(_format);
+		if (val != texture_format_lookup.end()) {
+			format = val->second;
+		}
+		else {
+			lua_pushboolean(L, 0);
+			lua_pushstring(L, "Invalid texture format.");
+			return 2;
+		}
 
 		bgfx_set_image(stage, *uniform, *texture, mip, access, format);
 
@@ -1060,7 +1184,7 @@ static const luaL_Reg m[] = {
 						idata[j*size+i] = n;
 					}
 					else {
-						float n = lua_tonumber(L, -2);
+						float n = (float)lua_tonumber(L, -2);
 						float *fdata = (float*)data;
 						fdata[j*size+i] = n;
 					}
