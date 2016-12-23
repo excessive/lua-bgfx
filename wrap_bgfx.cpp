@@ -597,6 +597,7 @@ static const luaL_Reg m[] = {
 	// bgfx.init()
 	{ "init", [](lua_State *L) {
 		uniform_buffer = malloc(UNIFORM_BUFFER_SIZE);
+		memset(uniform_buffer, 0, UNIFORM_BUFFER_SIZE);
 
 		bool use_sdl_context = true;
 		if (lua_isboolean(L, 1)) {
@@ -841,6 +842,14 @@ static const luaL_Reg m[] = {
 		return 0;
 	} },
 
+	// bgfx.set_view_frame_buffer(0, frame_buffer)
+	{ "set_view_frame_buffer", [](lua_State *L) {
+		uint8_t id = (uint8_t)luaL_checkinteger(L, 1);
+		bgfx_frame_buffer_handle_t *fb = to_frame_buffer_ud(L, 2);
+		bgfx_set_view_frame_buffer(id, *fb);
+		return 0;
+	} },
+
 	// bgfx.set_marker("miku")
 	{ "set_marker", [](lua_State *L) {
 		bgfx_set_marker(luaL_checkstring(L, 1));
@@ -1034,8 +1043,21 @@ static const luaL_Reg m[] = {
 		return 1;
 	} },
 
+	// bgfx.get_texture(frame_buffer, attachment=0)
 	{ "get_texture", [](lua_State *L) {
 		bgfx_frame_buffer_handle_t *fb = to_frame_buffer_ud(L, 1);
+
+		uint8_t attachment = 0;
+		if (lua_isnumber(L, 2)) {
+			attachment = (uint8_t)lua_tointeger(L, 2);
+		}
+
+		bgfx_texture_handle_t *tex = (bgfx_texture_handle_t*)lua_newuserdata(L, sizeof(bgfx_texture_handle_t));
+		*tex = bgfx_get_texture(*fb, attachment);
+
+		luaL_getmetatable(L, "bgfx_texture");
+		lua_setmetatable(L, -2);
+
 		return 1;
 	} },
 
@@ -1214,8 +1236,6 @@ static const luaL_Reg m[] = {
 	} },
 
 	{ "set_uniform", [](lua_State *L) {
-		void *data = uniform_buffer;
-
 		auto scan_inner = [&](size_t size, int idx, int j) {
 			if (lua_istable(L, idx)) {
 				lua_pushvalue(L, idx);
@@ -1227,12 +1247,12 @@ static const luaL_Reg m[] = {
 
 					if (size == 1) {
 						int n = lua_tointeger(L, -1);
-						int *idata = (int*)data;
+						int *idata = (int*)uniform_buffer;
 						idata[j*size+i] = n;
 					}
 					else {
 						float n = (float)lua_tonumber(L, -2);
-						float *fdata = (float*)data;
+						float *fdata = (float*)uniform_buffer;
 						fdata[j*size+i] = n;
 					}
 
@@ -1275,7 +1295,7 @@ static const luaL_Reg m[] = {
 		}
 
 		bgfx_uniform_handle_t *uniform = to_uniform_ud(L, 1);
-		bgfx_set_uniform(*uniform, data, count);
+		bgfx_set_uniform(*uniform, uniform_buffer, count);
 
 		return 0;
 	} },
