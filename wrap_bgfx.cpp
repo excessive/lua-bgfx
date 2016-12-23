@@ -1039,6 +1039,53 @@ static const luaL_Reg m[] = {
 		return 1;
 	} },
 
+	// bgfx.is_texture_valid(format, flags, depth, cubemap, layers)
+	{ "is_texture_valid", [](lua_State *L) {
+		bgfx_texture_format_t format = BGFX_TEXTURE_FORMAT_RGBA8;
+
+		const char *_format = "rgba8";
+		if (lua_isstring(L, 1)) {
+			_format = lua_tostring(L, 1);
+		}
+
+		auto val = texture_format_lookup.find(_format);
+		if (val != texture_format_lookup.end()) {
+			format = val->second;
+		}
+		else {
+			lua_pushboolean(L, 0);
+			lua_pushstring(L, "Invalid texture format.");
+			return 2;
+		}
+
+		uint32_t flags = BGFX_TEXTURE_U_CLAMP | BGFX_TEXTURE_V_CLAMP;
+
+		if (lua_istable(L, 2)) {
+			flags = 0;
+			table_scan(L, 2, [&](const char *, const char *v) {
+				auto val = texture_lookup.find(v);
+				if (val != texture_lookup.end()) {
+					flags |= val->second;
+				}
+			});
+		}
+
+		uint16_t depth  = (uint16_t)luaL_checkinteger(L, 3);
+		bool cubemap = false;
+		if (lua_isboolean(L, 4)) {
+			cubemap = lua_toboolean(L, 4) > 0;
+		}
+
+		uint16_t layers = 1;
+		if (lua_isnumber(L, 5)) {
+			layers = (uint16_t)lua_tointeger(L, 5);
+		}
+
+		bool valid = bgfx_is_texture_valid(depth, cubemap, layers, format, flags);
+		lua_pushboolean(L, valid ? 1 : 0);
+		return 1;
+	} },
+
 	// bgfx.new_texture(data, width, height, has_mips, format)
 	{ "new_texture", [](lua_State *L) {
 		const bgfx_memory_t *mem = NULL;
