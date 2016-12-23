@@ -16,7 +16,10 @@ extern "C" {
 #include <cstring>
 #include <map>
 
+// buffer up to 512 mat4's worth of data, we can't even fit that in one send.
+#define UNIFORM_BUFFER_SIZE 512*16*sizeof(float)
 static bool shutdown = false;
+static void *uniform_buffer;
 
 #ifndef luaL_typerror
 LUALIB_API int luaL_typerror (lua_State *L, int narg, const char *tname) {
@@ -503,6 +506,8 @@ static SDL_Window *_window = NULL;
 static const luaL_Reg m[] = {
 	// bgfx.init()
 	{ "init", [](lua_State *L) {
+		uniform_buffer = malloc(UNIFORM_BUFFER_SIZE);
+
 		bool use_sdl_context = true;
 		if (lua_isboolean(L, 1)) {
 			use_sdl_context = lua_toboolean(L, 1) ? true : false;
@@ -539,6 +544,8 @@ static const luaL_Reg m[] = {
 
 	// bgfx.shutdown()
 	{ "shutdown", [](lua_State *) {
+		free(uniform_buffer);
+
 		shutdown = true;
 		bgfx_shutdown();
 		return 0;
@@ -963,17 +970,70 @@ static const luaL_Reg m[] = {
 	} },
 
 	{ "set_uniform", [](lua_State *L) {
-		bgfx_uniform_handle_t *uniform = to_uniform_ud(L, 1);
-		void *data = lua_touserdata(L, 2);
+		void *data = uniform_buffer;
+
+		auto scan_inner = [&](size_t size, int idx, int j) {
+			if (lua_istable(L, idx)) {
+				lua_pushvalue(L, idx);
+				lua_pushnil(L);
+
+				int i = 0;
+				while (lua_next(L, -2)) {
+					lua_pushvalue(L, -2);
+
+					if (size == 1) {
+						int n = lua_tointeger(L, -1);
+						int *idata = (int*)data;
+						idata[j*size+i] = n;
+					}
+					else {
+						float n = lua_tonumber(L, -2);
+						float *fdata = (float*)data;
+						fdata[j*size+i] = n;
+					}
+
+					lua_pop(L, 2);
+					i = i + 1;
+				}
+				lua_pop(L, 1);
+			}
+		};
+
+		auto scan_outer = [&](int idx) {
+			if (lua_istable(L, idx)) {
+				lua_pushvalue(L, idx);
+				lua_pushnil(L);
+
+				int i = 0;
+				while (lua_next(L, -2)) {
+					lua_pushvalue(L, -2);
+
+					// sanity check: we only support float 4, int, mat3 and mat4.
+					size_t size = lua_objlen(L, -2);
+					if (size != 16 && size != 9 && size != 4 && size != 1) {
+						lua_pop(L, 2);
+						break;
+					}
+					scan_inner(size, -2, i);
+
+					lua_pop(L, 2);
+					i = i + 1;
+				}
+				lua_pop(L, 1);
+			}
+		};
+
+		scan_outer(2);
 
 		uint16_t count = 1;
 		if (lua_isnumber(L, 3)) {
 			count = lua_tointeger(L, 3);
 		}
 
+		bgfx_uniform_handle_t *uniform = to_uniform_ud(L, 1);
 		bgfx_set_uniform(*uniform, data, count);
 
-		return 1;
+		return 0;
 	} },
 
 	{ "new_program", [](lua_State *L) {
