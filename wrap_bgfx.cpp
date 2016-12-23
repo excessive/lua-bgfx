@@ -14,6 +14,7 @@ extern "C" {
 #include <bx/fpumath.h>
 
 #include <cstring>
+#include <climits>
 #include <map>
 
 // buffer up to 512 mat4's worth of data, we can't even fit that in one send.
@@ -42,6 +43,7 @@ UD_HANDLE_TYPE(texture)
 UD_HANDLE_TYPE(uniform)
 UD_HANDLE_TYPE(vertex_buffer)
 UD_HANDLE_TYPE(index_buffer)
+UD_HANDLE_TYPE(frame_buffer)
 
 static bgfx_vertex_decl_t *to_vertex_decl_ud(lua_State *L, int index) {
 	bgfx_vertex_decl_t *ud = (bgfx_vertex_decl_t*)lua_touserdata(L, index);
@@ -52,7 +54,6 @@ static bgfx_vertex_decl_t *to_vertex_decl_ud(lua_State *L, int index) {
 static const luaL_Reg program_fn[] = {
 	{ "__gc",  [](lua_State *L) {
 		if (shutdown) { return 0; }
-		//printf("gc shader program\n");
 		bgfx_program_handle_t *ud = to_program_ud(L, 1);
 		bgfx_destroy_program(*ud);
 		return 0;
@@ -69,7 +70,6 @@ static const luaL_Reg program_fn[] = {
 static const luaL_Reg texture_fn[] = {
 	{ "__gc",  [](lua_State *L) {
 		if (shutdown) { return 0; }
-		//printf("gc texture\n");
 		bgfx_texture_handle_t *ud = to_texture_ud(L, 1);
 		bgfx_destroy_texture(*ud);
 		return 0;
@@ -86,7 +86,6 @@ static const luaL_Reg texture_fn[] = {
 static const luaL_Reg uniform_fn[] = {
 	{ "__gc",  [](lua_State *L) {
 		if (shutdown) { return 0; }
-		//printf("gc uniform\n");
 		bgfx_uniform_handle_t *ud = to_uniform_ud(L, 1);
 		bgfx_destroy_uniform(*ud);
 		return 0;
@@ -113,7 +112,6 @@ static const luaL_Reg vertex_format_fn[] = {
 static const luaL_Reg vertex_buffer_fn[] = {
 	{ "__gc",  [](lua_State *L) {
 		if (shutdown) { return 0; }
-		//printf("gc vb\n");
 		bgfx_vertex_buffer_handle_t *ud = to_vertex_buffer_ud(L, 1);
 		bgfx_destroy_vertex_buffer(*ud);
 		return 0;
@@ -130,7 +128,6 @@ static const luaL_Reg vertex_buffer_fn[] = {
 static const luaL_Reg index_buffer_fn[] = {
 	{ "__gc",  [](lua_State *L) {
 		if (shutdown) { return 0; }
-		//printf("gc ib\n");
 		bgfx_index_buffer_handle_t *ud = to_index_buffer_ud(L, 1);
 		bgfx_destroy_index_buffer(*ud);
 		return 0;
@@ -139,6 +136,22 @@ static const luaL_Reg index_buffer_fn[] = {
 		char buff[32];
 		sprintf(buff, "%p", to_index_buffer_ud(L, 1));
 		lua_pushfstring(L, "bgfx_index_buffer (%s)", buff);
+		return 1;
+	} },
+	{ NULL, NULL }
+};
+
+static const luaL_Reg frame_buffer_fn[] = {
+	{ "__gc",  [](lua_State *L) {
+		if (shutdown) { return 0; }
+		bgfx_frame_buffer_handle_t *ud = to_frame_buffer_ud(L, 1);
+		bgfx_destroy_frame_buffer(*ud);
+		return 0;
+	} },
+	{ "__tostring", [](lua_State *L) {
+		char buff[32];
+		sprintf(buff, "%p", to_frame_buffer_ud(L, 1));
+		lua_pushfstring(L, "bgfx_frame_buffer (%s)", buff);
 		return 1;
 	} },
 	{ NULL, NULL }
@@ -891,6 +904,42 @@ static const luaL_Reg m[] = {
 		return 0;
 	} },
 
+	{ "new_frame_buffer", [](lua_State *L) {
+		uint32_t flags = BGFX_TEXTURE_U_CLAMP | BGFX_TEXTURE_V_CLAMP;
+
+		uint16_t width = luaL_checkinteger(L, 1);
+		uint16_t height = luaL_checkinteger(L, 2);
+
+		bgfx_texture_format_t format = BGFX_TEXTURE_FORMAT_RGBA8;
+
+		if (lua_isnumber(L, 4)) {
+			// TODO: figure out flags...
+		}
+
+		bgfx_frame_buffer_handle_t *ud = (bgfx_frame_buffer_handle_t*)lua_newuserdata(L, sizeof(bgfx_frame_buffer_handle_t));
+		*ud = bgfx_create_frame_buffer(width, height, format, flags);
+
+		luaL_getmetatable(L, "bgfx_frame_buffer");
+		lua_setmetatable(L, -2);
+
+// typedef struct bgfx_attachment
+// {
+//     bgfx_texture_handle_t handle;
+//     uint16_t mip;
+//     uint16_t layer;
+// } bgfx_attachment_t;
+// bgfx_frame_buffer_handle_t bgfx_create_frame_buffer_scaled(bgfx_backbuffer_ratio_t _ratio, bgfx_texture_format_t _format, uint32_t _textureFlags);
+// bgfx_frame_buffer_handle_t bgfx_create_frame_buffer_from_handles(uint8_t _num, const bgfx_texture_handle_t* _handles, bool _destroyTextures);
+// bgfx_frame_buffer_handle_t bgfx_create_frame_buffer_from_attachment(uint8_t _num, const bgfx_attachment_t* _attachment, bool _destroyTextures);
+// bgfx_frame_buffer_handle_t bgfx_create_frame_buffer_from_nwh(void* _nwh, uint16_t _width, uint16_t _height, bgfx_texture_format_t _depthFormat);
+		return 1;
+	} },
+
+	{ "get_texture", [](lua_State *L) {
+		bgfx_frame_buffer_handle_t *fb = to_frame_buffer_ud(L, 1);
+		return 1;
+	} },
+
 	// bgfx.new_texture(data, width, height)
 	{ "new_texture", [](lua_State *L) {
 		if (!lua_isstring(L, 1)) {
@@ -966,7 +1015,31 @@ static const luaL_Reg m[] = {
 
 		bgfx_set_texture(stage, *uniform, *texture, UINT32_MAX);
 
-		return 1;
+		return 0;
+	} },
+
+	{ "set_image", [](lua_State *L) {
+		uint8_t stage = luaL_checkinteger(L, 1);
+		bgfx_uniform_handle_t *uniform = to_uniform_ud(L, 2);
+		bgfx_texture_handle_t *texture = to_texture_ud(L, 3);
+
+		uint8_t mip = (uint8_t)luaL_checkinteger(L, 4);
+
+		std::string _access = std::string(luaL_checkstring(L, 5));
+		bgfx_access_t access = BGFX_ACCESS_READ;
+		if (_access == "write") {
+			access = BGFX_ACCESS_WRITE;
+		}
+		if (_access == "read_write") {
+			access = BGFX_ACCESS_READWRITE;
+		}
+
+		// TODO: more formats!
+		bgfx_texture_format_t format = BGFX_TEXTURE_FORMAT_RGBA8;
+
+		bgfx_set_image(stage, *uniform, *texture, mip, access, format);
+
+		return 0;
 	} },
 
 	{ "set_uniform", [](lua_State *L) {
@@ -1123,8 +1196,6 @@ static const luaL_Reg m[] = {
 			table_scan(L, -2, [&](const char *k, const char *v) {
 				std::string key = std::string(k);
 
-				// printf("= %s %s\n", k, v);
-
 				if (key == "type") {
 					auto val = type_lookup.find(v);
 					if (val != type_lookup.end()) {
@@ -1146,12 +1217,7 @@ static const luaL_Reg m[] = {
 				}
 			});
 
-			// if (normalized) {
-			// 	printf("normalizing\n");
-			// }
-
 			bgfx_vertex_decl_add(decl, attrib, size, type, normalized, as_int);
-			// printf("\n");
 		});
 
 		bgfx_vertex_decl_end(decl);
@@ -1185,8 +1251,16 @@ static const luaL_Reg m[] = {
 
 	{ "new_index_buffer", [](lua_State *L) {
 		size_t vertices = lua_objlen(L, -1);
-		const bgfx_memory_t *mem = bgfx_alloc(sizeof(uint32_t) * vertices);
-		uint32_t* data = (uint32_t*)mem->data;
+		size_t bytes    = sizeof(uint16_t);
+		bool index32    = false;
+		if (vertices > USHRT_MAX) {
+			bytes = sizeof(uint32_t);
+			index32 = true;
+		}
+		const bgfx_memory_t *mem = bgfx_alloc(bytes * vertices);
+
+		uint16_t* data16 = (uint16_t*)mem->data;
+		uint32_t* data32 = (uint32_t*)mem->data;
 
 		for (int i=1; ; i++) {
 			lua_rawgeti(L, -1, i);
@@ -1194,12 +1268,17 @@ static const luaL_Reg m[] = {
 				lua_pop(L, 1);
 				break;
 			}
-			data[i-1] = (uint32_t)luaL_checkinteger(L, -1) - 1;
+			if (index32) {
+				data32[i-1] = (uint32_t)luaL_checkinteger(L, -1) - 1;
+			}
+			else {
+				data16[i-1] = (uint16_t)luaL_checkinteger(L, -1) - 1;
+			}
 			lua_pop(L,1);
 		}
 
 		bgfx_index_buffer_handle_t *ud = (bgfx_index_buffer_handle_t*)lua_newuserdata(L, sizeof(bgfx_index_buffer_handle_t));
-		*ud = bgfx_create_index_buffer(mem, BGFX_BUFFER_INDEX32);
+		*ud = bgfx_create_index_buffer(mem, index32 ? BGFX_BUFFER_INDEX32 : 0);
 
 		luaL_getmetatable(L, "bgfx_index_buffer");
 		lua_setmetatable(L, -2);
@@ -1327,6 +1406,11 @@ int luaopen_bgfx(lua_State *L) {
 
 	luaL_newmetatable(L, "bgfx_index_buffer");
 	luaL_register(L, NULL, index_buffer_fn);
+	lua_pushvalue(L, -1);
+	lua_setfield(L, -1, "__index");
+
+	luaL_newmetatable(L, "bgfx_frame_buffer");
+	luaL_register(L, NULL, frame_buffer_fn);
 	lua_pushvalue(L, -1);
 	lua_setfield(L, -1, "__index");
 
