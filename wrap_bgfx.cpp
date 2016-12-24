@@ -16,6 +16,7 @@ extern "C" {
 #include <cstring>
 #include <climits>
 #include <map>
+#include <vector>
 
 // buffer up to 512 mat4's worth of data, we can't even fit that in one send.
 #define UNIFORM_BUFFER_SIZE 512*16*sizeof(float)
@@ -79,6 +80,7 @@ static const luaL_Reg program_fn[] = {
 static const luaL_Reg texture_fn[] = {
 	{ "__gc",  [](lua_State *L) {
 		if (shutdown) { return 0; }
+		return 0;
 		bgfx_texture_handle_t *ud = to_texture_ud(L, 1);
 		bgfx_destroy_texture(*ud);
 		return 0;
@@ -1011,11 +1013,53 @@ static const luaL_Reg m[] = {
 	{ "new_frame_buffer", [](lua_State *L) {
 		uint32_t flags = BGFX_TEXTURE_U_CLAMP | BGFX_TEXTURE_V_CLAMP;
 
+		if (lua_istable(L, 1)) {
+			std::vector<bgfx_attachment_t> attachments;
+
+			lua_pushvalue(L, 1);
+			for (int i=1; ; i++) {
+				lua_rawgeti(L, -1, i);
+				if (lua_isnil(L,-1)) {
+					lua_pop(L, 1);
+					break;
+				}
+				bgfx_attachment_t a;
+				a.mip = 0;
+				a.layer = 1;
+
+				if (lua_isuserdata(L, -1)) {
+					a.handle = *to_texture_ud(L, -1);
+				} else {
+					table_scan(L, -1, [&](const char *k, const char *) {
+						std::string key(k);
+						if (key == "mip" || key == "layer") {
+							a.mip = (uint16_t)lua_tointeger(L, -2);
+						}
+						else if (key == "handle") {
+							a.handle = *to_texture_ud(L, -2);
+						}
+					});
+				}
+				attachments.push_back(a);
+				lua_pop(L, 1);
+			}
+			lua_pop(L, 1);
+
+			bgfx_frame_buffer_handle_t *ud = (bgfx_frame_buffer_handle_t*)lua_newuserdata(L, sizeof(bgfx_frame_buffer_handle_t));
+			*ud = bgfx_create_frame_buffer_from_attachment(attachments.size(), attachments.data(), false);
+
+			printf("%d\n", ud->idx);
+
+			luaL_getmetatable(L, "bgfx_frame_buffer");
+			lua_setmetatable(L, -2);
+
+			return 1;
+		}
+
 		uint16_t width = luaL_checkinteger(L, 1);
 		uint16_t height = luaL_checkinteger(L, 2);
 
 		bgfx_texture_format_t format = BGFX_TEXTURE_FORMAT_RGBA8;
-
 		const char *_format = "rgba8";
 		if (lua_isstring(L, 3)) {
 			_format = lua_tostring(L, 3);
@@ -1047,15 +1091,7 @@ static const luaL_Reg m[] = {
 		luaL_getmetatable(L, "bgfx_frame_buffer");
 		lua_setmetatable(L, -2);
 
-// typedef struct bgfx_attachment
-// {
-//     bgfx_texture_handle_t handle;
-//     uint16_t mip;
-//     uint16_t layer;
-// } bgfx_attachment_t;
 // bgfx_frame_buffer_handle_t bgfx_create_frame_buffer_scaled(bgfx_backbuffer_ratio_t _ratio, bgfx_texture_format_t _format, uint32_t _textureFlags);
-// bgfx_frame_buffer_handle_t bgfx_create_frame_buffer_from_handles(uint8_t _num, const bgfx_texture_handle_t* _handles, bool _destroyTextures);
-// bgfx_frame_buffer_handle_t bgfx_create_frame_buffer_from_attachment(uint8_t _num, const bgfx_attachment_t* _attachment, bool _destroyTextures);
 // bgfx_frame_buffer_handle_t bgfx_create_frame_buffer_from_nwh(void* _nwh, uint16_t _width, uint16_t _height, bgfx_texture_format_t _depthFormat);
 		return 1;
 	} },
@@ -1125,7 +1161,7 @@ static const luaL_Reg m[] = {
 		return 1;
 	} },
 
-	// bgfx.new_texture(data, width, height, has_mips, format)
+	// bgfx.new_texture(data, width, height, has_mips, format, flags)
 	{ "new_texture", [](lua_State *L) {
 		const bgfx_memory_t *mem = NULL;
 		if (lua_isstring(L, 1)) {
@@ -1135,16 +1171,17 @@ static const luaL_Reg m[] = {
 		}
 
 		bool has_mips = false;
-		if (lua_isboolean(L, 4)) {
+		const char *_format = "rgba8";
+
+		int n = lua_gettop(L);
+		if (n >= 4) {
 			has_mips = lua_toboolean(L, 4) > 0;
+		}
+		if (n >= 5) {
+			_format = luaL_checkstring(L, 5);
 		}
 
 		bgfx_texture_format_t format = BGFX_TEXTURE_FORMAT_RGBA8;
-
-		const char *_format = "rgba8";
-		if (lua_isstring(L, 5)) {
-			_format = lua_tostring(L, 5);
-		}
 
 		auto val = texture_format_lookup.find(_format);
 		if (val != texture_format_lookup.end()) {
@@ -1159,8 +1196,19 @@ static const luaL_Reg m[] = {
 		uint16_t width  = (uint16_t)luaL_checkinteger(L, 2);
 		uint16_t height = (uint16_t)luaL_checkinteger(L, 3);
 
+		uint32_t flags = BGFX_TEXTURE_NONE;
+		if (lua_istable(L, 6)) {
+			flags = 0;
+			table_scan(L, 6, [&](const char *, const char *v) {
+				auto val = texture_lookup.find(v);
+				if (val != texture_lookup.end()) {
+					flags |= val->second;
+				}
+			});
+		}
+
 		bgfx_texture_handle_t *ud = (bgfx_texture_handle_t*)lua_newuserdata(L, sizeof(bgfx_texture_handle_t));
-		*ud = bgfx_create_texture_2d(width, height, has_mips, 1, format, 0, mem);
+		*ud = bgfx_create_texture_2d(width, height, has_mips, 1, format, flags, mem);
 
 		luaL_getmetatable(L, "bgfx_texture");
 		lua_setmetatable(L, -2);
