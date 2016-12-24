@@ -5,11 +5,18 @@ BGFX bindings for Lua.
 
 # Compiling
 ## Windows
-First, you'll need to grab lua-bgfx and all the submodules: `git clone https://github.com/excessive/lua-bgfx.git --recursive`
 
-Now, since SDL2 isn't likely to be available system-wide, you'll need that: `git clone https://github.com/spurious/SDL-mirror.git extern/sdl`
+```bash
+# grab lua-bgfx and all the submodules...
+git clone https://github.com/excessive/lua-bgfx.git --recursive
+cd lua-bgfx
 
-That should be all, either run `genie vs2013` in the `scripts` folder or let `build.bat` take care of everything for you.
+# since SDL2 isn't likely to be available system-wide, so...
+git clone https://github.com/spurious/SDL-mirror.git extern/sdl
+
+# build
+cmd /Cbuild.bat
+```
 
 **Note**: *The build script assumes vs2013 - 12/15 might work, but you'll need to edit the `%GENIE% vs2013` line.* 
 
@@ -18,11 +25,16 @@ For the exceedingly lazy, you can run the test program with `run.bat`
 ## Linux
 First, install `SDL2-devel` and `luajit-devel` (on Fedora, you can just `dnf install SDL2-devel luajit-devel`
 
-Now grab lua-bgfx and the submodules: `git clone https://github.com/excessive/lua-bgfx.git --recursive`
+```bash
+# grab lua-bgfx and the submodules...
+git clone https://github.com/excessive/lua-bgfx.git --recursive && cd lua-bgfx
 
-Then generate the project files: `./extern/bx/tools/bin/linux/genie gmake` 
+# generate the project files...
+./extern/bx/tools/bin/linux/genie gmake
 
-Then make: `make -j9`
+# build
+make -j9
+```
 
 
 # License
