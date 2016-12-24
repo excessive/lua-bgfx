@@ -939,19 +939,6 @@ static const luaL_Reg m[] = {
 
 		uint8_t id = (uint8_t)luaL_checkinteger(L, 1);
 
-		// float x90 = bx::toRad(-90.0f);
-		// float fov = bx::toRad(60.0f);
-		// float aspect = 1280.f/720.f;
-		//
-		// float tmp[16], rot[16];
-		// bx::mtxTranslate(tmp, 0.0f, 2.0f, -1.6f);
-		// bx::mtxRotateX(rot, -x90);
-		// bx::mtxMul(view, tmp, rot);// rot, tmp);
-		//
-		// ::perspective(proj, aspect, fov);//, 0.01f, true, 1000.0f);
-		// // bgfx::setViewTransform(0, view, tmp);
-
-		// bx::mtxTranslate(view, float _tx, float _ty, float _tz)
 		load_matrix(L, 2, view);
 		load_matrix(L, 3, proj);
 
@@ -1473,6 +1460,41 @@ static const luaL_Reg m[] = {
 
 		luaL_getmetatable(L, "bgfx_index_buffer");
 		lua_setmetatable(L, -2);
+		return 1;
+	} },
+
+	// bgfx.check_avail_transient_buffer("index", num)
+	// bgfx.check_avail_transient_buffer("vertex", num, decl)
+	// bgfx.check_avail_transient_buffer("instance", num, stride)
+	// bgfx.check_avail_transient_buffer("both", vertices, decl, indices)
+	{ "check_avail_transient_buffer", [](lua_State *L) {
+		std::string type(luaL_checkstring(L, 1));
+		uint32_t num = (uint32_t)luaL_checkinteger(L, 2);
+
+		bool avail = false;
+		if (type == "index") {
+			avail = bgfx_check_avail_transient_index_buffer(num);
+		}
+		else if (type == "vertex") {
+			bgfx_vertex_decl_t *decl = to_vertex_decl_ud(L, 3);
+			avail =bgfx_check_avail_transient_vertex_buffer(num, decl);
+		}
+		else if (type == "instance") {
+			uint16_t stride = luaL_checkinteger(L, 3);
+			avail = bgfx_check_avail_instance_data_buffer(num, stride);
+		}
+		else if (type == "both") {
+			bgfx_vertex_decl_t *decl = to_vertex_decl_ud(L, 3);
+			uint32_t indices = luaL_checkinteger(L, 4);
+			avail = bgfx_check_avail_transient_buffers(num, decl, indices);
+		}
+		else {
+			lua_pushstring(L, "Invalid transient buffer type.");
+			lua_error(L);
+			return 0;
+		}
+
+		lua_pushboolean(L, avail ? 1 : 0);
 		return 1;
 	} },
 
