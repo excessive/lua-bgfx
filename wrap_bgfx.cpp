@@ -1539,7 +1539,6 @@ static const luaL_Reg m[] = {
 	// bgfx.new_transient_buffer("both", num, decl, data, indices)
 	{ "new_transient_buffer", [](lua_State *L) {
 		std::string type(luaL_checkstring(L, 1));
-		uint32_t num = (uint32_t)luaL_checkinteger(L, 2);
 
 		auto load_tib = [&](bgfx_transient_index_buffer_t *tib, int idx) {
 			size_t vertices = lua_objlen(L, idx);
@@ -1560,6 +1559,14 @@ static const luaL_Reg m[] = {
 
 		if (type == "index" ) {
 			bgfx_transient_index_buffer_t *tib = (bgfx_transient_index_buffer_t*)lua_newuserdata(L, sizeof(bgfx_transient_index_buffer_t));
+
+			if (!lua_istable(L, 2)) {
+				lua_pushstring(L, "Indices must be a table");
+				lua_error(L);
+				return 0;
+			}
+
+			uint32_t num = lua_objlen(L, 2);
 			bgfx_alloc_transient_index_buffer(tib, num);
 			load_tib(tib, 2);
 
@@ -1569,7 +1576,8 @@ static const luaL_Reg m[] = {
 		else if (type == "vertex") {
 			bgfx_transient_vertex_buffer_t *tvb = (bgfx_transient_vertex_buffer_t*)lua_newuserdata(L, sizeof(bgfx_transient_vertex_buffer_t));
 
-			if (!lua_isstring(L, 1)) {
+			uint32_t num = (uint32_t)luaL_checkinteger(L, 2);
+			if (!lua_isstring(L, 4)) {
 				lua_pushboolean(L, 0);
 				return 1;
 			}
@@ -1578,7 +1586,7 @@ static const luaL_Reg m[] = {
 			bgfx_alloc_transient_vertex_buffer(tvb, num, decl);
 
 			size_t size = 0;
-			const char *data = lua_tolstring(L, 1, &size);
+			const char *data = lua_tolstring(L, 4, &size);
 			memcpy(tvb->data, data, size);
 
 			luaL_getmetatable(L, "bgfx_transient_vertex_buffer");
