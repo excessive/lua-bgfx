@@ -31,6 +31,13 @@ LUALIB_API int luaL_typerror (lua_State *L, int narg, const char *tname) {
 }
 #endif
 
+#define UD_HANDLE_TYPE2(name) \
+static bgfx_##name##_t *to_##name##_ud(lua_State *L, int index) { \
+	bgfx_##name##_t *ud = (bgfx_##name##_t*)lua_touserdata(L, index); \
+	if (ud == NULL) luaL_typerror(L, index, #name); \
+	return ud; \
+}
+
 #define UD_HANDLE_TYPE(name) \
 static bgfx_##name##_handle_t *to_##name##_ud(lua_State *L, int index) { \
 	bgfx_##name##_handle_t *ud = (bgfx_##name##_handle_t*)lua_touserdata(L, index); \
@@ -45,11 +52,13 @@ UD_HANDLE_TYPE(vertex_buffer)
 UD_HANDLE_TYPE(index_buffer)
 UD_HANDLE_TYPE(frame_buffer)
 
-static bgfx_vertex_decl_t *to_vertex_decl_ud(lua_State *L, int index) {
-	bgfx_vertex_decl_t *ud = (bgfx_vertex_decl_t*)lua_touserdata(L, index);
-	if (ud == NULL) luaL_typerror(L, index, "bgfx_vertex_decl");
-	return ud;
-}
+UD_HANDLE_TYPE2(transient_index_buffer)
+UD_HANDLE_TYPE2(transient_vertex_buffer)
+UD_HANDLE_TYPE2(instance_data_buffer)
+UD_HANDLE_TYPE2(vertex_decl)
+
+#undef UD_HANDLE_TYPE
+#undef UD_HANDLE_TYPE2
 
 static const luaL_Reg program_fn[] = {
 	{ "__gc",  [](lua_State *L) {
@@ -59,7 +68,7 @@ static const luaL_Reg program_fn[] = {
 		return 0;
 	} },
 	{ "__tostring", [](lua_State *L) {
-		char buff[32];
+		char buff[64];
 		sprintf(buff, "%p", to_program_ud(L, 1));
 		lua_pushfstring(L, "bgfx_program (%s)", buff);
 		return 1;
@@ -75,7 +84,7 @@ static const luaL_Reg texture_fn[] = {
 		return 0;
 	} },
 	{ "__tostring", [](lua_State *L) {
-		char buff[32];
+		char buff[64];
 		sprintf(buff, "%p", to_texture_ud(L, 1));
 		lua_pushfstring(L, "bgfx_texture (%s)", buff);
 		return 1;
@@ -91,7 +100,7 @@ static const luaL_Reg uniform_fn[] = {
 		return 0;
 	} },
 	{ "__tostring", [](lua_State *L) {
-		char buff[32];
+		char buff[64];
 		sprintf(buff, "%p", to_uniform_ud(L, 1));
 		lua_pushfstring(L, "bgfx_uniform (%s)", buff);
 		return 1;
@@ -101,7 +110,7 @@ static const luaL_Reg uniform_fn[] = {
 
 static const luaL_Reg vertex_format_fn[] = {
 	{ "__tostring", [](lua_State *L) {
-		char buff[32];
+		char buff[64];
 		sprintf(buff, "%p", to_vertex_decl_ud(L, 1));
 		lua_pushfstring(L, "bgfx_vertex_decl (%s)", buff);
 		return 1;
@@ -117,7 +126,7 @@ static const luaL_Reg vertex_buffer_fn[] = {
 		return 0;
 	} },
 	{ "__tostring", [](lua_State *L) {
-		char buff[32];
+		char buff[64];
 		sprintf(buff, "%p", to_vertex_buffer_ud(L, 1));
 		lua_pushfstring(L, "bgfx_vertex_buffer (%s)", buff);
 		return 1;
@@ -133,7 +142,7 @@ static const luaL_Reg index_buffer_fn[] = {
 		return 0;
 	} },
 	{ "__tostring", [](lua_State *L) {
-		char buff[32];
+		char buff[64];
 		sprintf(buff, "%p", to_index_buffer_ud(L, 1));
 		lua_pushfstring(L, "bgfx_index_buffer (%s)", buff);
 		return 1;
@@ -149,9 +158,30 @@ static const luaL_Reg frame_buffer_fn[] = {
 		return 0;
 	} },
 	{ "__tostring", [](lua_State *L) {
-		char buff[32];
+		char buff[64];
 		sprintf(buff, "%p", to_frame_buffer_ud(L, 1));
 		lua_pushfstring(L, "bgfx_frame_buffer (%s)", buff);
+		return 1;
+	} },
+	{ NULL, NULL }
+};
+
+
+static const luaL_Reg transient_ib_fn[] = {
+	{ "__tostring", [](lua_State *L) {
+		char buff[64];
+		sprintf(buff, "%p", to_frame_buffer_ud(L, 1));
+		lua_pushfstring(L, "bgfx_transient_index_buffer (%s)", buff);
+		return 1;
+	} },
+	{ NULL, NULL }
+};
+
+static const luaL_Reg transient_vb_fn[] = {
+	{ "__tostring", [](lua_State *L) {
+		char buff[64];
+		sprintf(buff, "%p", to_frame_buffer_ud(L, 1));
+		lua_pushfstring(L, "bgfx_transient_vertex_buffer (%s)", buff);
 		return 1;
 	} },
 	{ NULL, NULL }
@@ -1463,9 +1493,19 @@ static const luaL_Reg m[] = {
 		return 1;
 	} },
 
+	// bgfx.check_avail_instance_data_buffer(num, stride)
+	{ "check_avail_instance_data_buffer", [](lua_State *L) {
+		uint32_t num = (uint32_t)luaL_checkinteger(L, 1);
+		uint16_t stride = luaL_checkinteger(L, 2);
+
+		bool avail = bgfx_check_avail_instance_data_buffer(num, stride);
+
+		lua_pushboolean(L, avail ? 1 : 0);
+		return 1;
+	} },
+
 	// bgfx.check_avail_transient_buffer("index", num)
 	// bgfx.check_avail_transient_buffer("vertex", num, decl)
-	// bgfx.check_avail_transient_buffer("instance", num, stride)
 	// bgfx.check_avail_transient_buffer("both", vertices, decl, indices)
 	{ "check_avail_transient_buffer", [](lua_State *L) {
 		std::string type(luaL_checkstring(L, 1));
@@ -1478,10 +1518,6 @@ static const luaL_Reg m[] = {
 		else if (type == "vertex") {
 			bgfx_vertex_decl_t *decl = to_vertex_decl_ud(L, 3);
 			avail =bgfx_check_avail_transient_vertex_buffer(num, decl);
-		}
-		else if (type == "instance") {
-			uint16_t stride = luaL_checkinteger(L, 3);
-			avail = bgfx_check_avail_instance_data_buffer(num, stride);
 		}
 		else if (type == "both") {
 			bgfx_vertex_decl_t *decl = to_vertex_decl_ud(L, 3);
@@ -1497,6 +1533,87 @@ static const luaL_Reg m[] = {
 		lua_pushboolean(L, avail ? 1 : 0);
 		return 1;
 	} },
+
+	// bgfx.new_transient_buffer("index", indices)
+	// bgfx.new_transient_buffer("vertex", num, decl, data)
+	// bgfx.new_transient_buffer("both", num, decl, data, indices)
+	{ "new_transient_buffer", [](lua_State *L) {
+		std::string type(luaL_checkstring(L, 1));
+		uint32_t num = (uint32_t)luaL_checkinteger(L, 2);
+
+		auto load_tib = [&](bgfx_transient_index_buffer_t *tib, int idx) {
+			size_t vertices = lua_objlen(L, idx);
+			uint16_t* data16 = (uint16_t*)tib->data;
+
+			for (int i=1; ; i++) {
+				lua_rawgeti(L, -1, i);
+				if (lua_isnil(L,-1)) {
+					lua_pop(L, 1);
+					break;
+				}
+				else {
+					data16[i-1] = (uint16_t)luaL_checkinteger(L, -1) - 1;
+				}
+				lua_pop(L, 1);
+			}
+		};
+
+		if (type == "index" ) {
+			bgfx_transient_index_buffer_t *tib = (bgfx_transient_index_buffer_t*)lua_newuserdata(L, sizeof(bgfx_transient_index_buffer_t));
+			bgfx_alloc_transient_index_buffer(tib, num);
+			load_tib(tib, 2);
+
+			luaL_getmetatable(L, "bgfx_transient_index_buffer");
+			lua_setmetatable(L, -2);
+		}
+		else if (type == "vertex") {
+			bgfx_transient_vertex_buffer_t *tvb = (bgfx_transient_vertex_buffer_t*)lua_newuserdata(L, sizeof(bgfx_transient_vertex_buffer_t));
+
+			if (!lua_isstring(L, 1)) {
+				lua_pushboolean(L, 0);
+				return 1;
+			}
+
+			bgfx_vertex_decl_t *decl = to_vertex_decl_ud(L, 2);
+			bgfx_alloc_transient_vertex_buffer(tvb, num, decl);
+
+			size_t size = 0;
+			const char *data = lua_tolstring(L, 1, &size);
+			memcpy(tvb->data, data, size);
+
+			luaL_getmetatable(L, "bgfx_transient_vertex_buffer");
+			lua_setmetatable(L, -2);
+		}
+		else if (type == "both") {
+			// bgfx_vertex_decl_t *decl = to_vertex_decl_ud(L, 3);
+
+			// if (!lua_istable(L, 4)) {
+			// 	lua_pushstring(L, "Indices must be a table.");
+			// 	lua_error(L);
+			// 	return 0;
+			// }
+
+			// uint32_t indices = (uint32_t)lua_objlen(L, 4);
+
+			// bgfx_alloc_transient_buffers(&tvb, decl, num, &tib, indices);
+
+			// load tvb and tib
+
+			// push transient_index_buffer ud
+			// push transient_vertex_buffer ud
+
+			return 0;
+		}
+		else {
+			lua_pushstring(L, "Invalid transient buffer type.");
+			lua_error(L);
+			return 0;
+		}
+
+		return 1;
+	} },
+
+	// const bgfx_instance_data_buffer_t* bgfx_alloc_instance_data_buffer(uint32_t _num, uint16_t _stride);
 
 	// bgfx.set_vertex_buffer(vb, 0, 32)
 	{ "set_vertex_buffer", [](lua_State *L) {
@@ -1518,6 +1635,26 @@ static const luaL_Reg m[] = {
 		return 0;
 	} },
 
+	// bgfx.set_transient_vertex_buffer(vb, 0, 32)
+	{ "set_transient_vertex_buffer", [](lua_State *L) {
+		int n = lua_gettop(L);
+		lua_assert(n == 3);
+		(void)n;
+
+		bgfx_transient_vertex_buffer_t* handle = to_transient_vertex_buffer_ud(L, 1);
+		uint32_t start = 0;
+		uint32_t num = UINT32_MAX;
+		if (lua_isnumber(L, 2)) {
+			start = (uint32_t)lua_tonumber(L, 2);
+		}
+		if (lua_isnumber(L, 3)) {
+			num = (uint32_t)lua_tonumber(L, 3);
+		}
+
+		bgfx_set_transient_vertex_buffer(handle, start, num);
+		return 0;
+	} },
+
 	// bgfx.set_index_buffer(ib, 0, 60)
 	{ "set_index_buffer", [](lua_State *L) {
 		int n = lua_gettop(L);
@@ -1528,6 +1665,19 @@ static const luaL_Reg m[] = {
 		int first = (int)lua_tonumber(L, 2);
 		int num = (int)lua_tonumber(L, 3);
 		bgfx_set_index_buffer(*handle, first, num);
+		return 0;
+	} },
+
+	// bgfx.set_transient_index_buffer(tib, 0, 60)
+	{ "set_transient_index_buffer", [](lua_State *L) {
+		int n = lua_gettop(L);
+		lua_assert(n == 3);
+		(void)n;
+
+		bgfx_transient_index_buffer_t* handle = to_transient_index_buffer_ud(L, 1);
+		int first = (int)lua_tonumber(L, 2);
+		int num = (int)lua_tonumber(L, 3);
+		bgfx_set_transient_index_buffer(handle, first, num);
 		return 0;
 	} },
 
@@ -1592,40 +1742,22 @@ extern "C" LUA_EXPORT int luaopen_bgfx(lua_State*);
 
 LUA_EXPORT
 int luaopen_bgfx(lua_State *L) {
-	luaL_newmetatable(L, "bgfx_texture");
-	luaL_register(L, NULL, texture_fn);
-	lua_pushvalue(L, -1);
-	lua_setfield(L, -1, "__index");
 
-	luaL_newmetatable(L, "bgfx_uniform");
-	luaL_register(L, NULL, uniform_fn);
-	lua_pushvalue(L, -1);
-	lua_setfield(L, -1, "__index");
+#define REGISTER_MT(name, functions)  \
+	luaL_newmetatable(L, name);        \
+	luaL_register(L, NULL, functions); \
+	lua_pushvalue(L, -1);              \
+	lua_setfield(L, -1, "__index")     \
 
-	luaL_newmetatable(L, "bgfx_program");
-	luaL_register(L, NULL, program_fn);
-	lua_pushvalue(L, -1);
-	lua_setfield(L, -1, "__index");
-
-	luaL_newmetatable(L, "bgfx_vertex_decl");
-	luaL_register(L, NULL, vertex_format_fn);
-	lua_pushvalue(L, -1);
-	lua_setfield(L, -1, "__index");
-
-	luaL_newmetatable(L, "bgfx_vertex_buffer");
-	luaL_register(L, NULL, vertex_buffer_fn);
-	lua_pushvalue(L, -1);
-	lua_setfield(L, -1, "__index");
-
-	luaL_newmetatable(L, "bgfx_index_buffer");
-	luaL_register(L, NULL, index_buffer_fn);
-	lua_pushvalue(L, -1);
-	lua_setfield(L, -1, "__index");
-
-	luaL_newmetatable(L, "bgfx_frame_buffer");
-	luaL_register(L, NULL, frame_buffer_fn);
-	lua_pushvalue(L, -1);
-	lua_setfield(L, -1, "__index");
+	REGISTER_MT("bgfx_texture", texture_fn);
+	REGISTER_MT("bgfx_uniform", uniform_fn);
+	REGISTER_MT("bgfx_program", program_fn);
+	REGISTER_MT("bgfx_vertex_decl", vertex_format_fn);
+	REGISTER_MT("bgfx_vertex_buffer", vertex_buffer_fn);
+	REGISTER_MT("bgfx_index_buffer", index_buffer_fn);
+	REGISTER_MT("bgfx_frame_buffer", frame_buffer_fn);
+	REGISTER_MT("bgfx_transient_index_buffer", transient_ib_fn);
+	REGISTER_MT("bgfx_transient_vertex_buffer", transient_vb_fn);
 
 	lua_pop(L, lua_gettop(L));
 
