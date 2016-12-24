@@ -1574,7 +1574,7 @@ static const luaL_Reg m[] = {
 				return 1;
 			}
 
-			bgfx_vertex_decl_t *decl = to_vertex_decl_ud(L, 2);
+			bgfx_vertex_decl_t *decl = to_vertex_decl_ud(L, 3);
 			bgfx_alloc_transient_vertex_buffer(tvb, num, decl);
 
 			size_t size = 0;
