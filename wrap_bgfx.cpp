@@ -616,8 +616,6 @@ static void table_scan(lua_State *L, int index, F fn) {
 		const char *key = lua_tostring(L, -1);
 		const char *value = lua_tostring(L, -2);
 
-		// printf("%s: %s\n", key, value);
-
 		fn(key, value);
 
 		lua_pop(L, 2);
@@ -665,7 +663,8 @@ static const luaL_Reg m[] = {
 			bgfx_set_platform_data(&data);
 		}
 		if (!bgfx_init(BGFX_RENDERER_TYPE_OPENGL, BGFX_PCI_ID_NONE, 0, NULL, NULL)) {
-			printf(":(\n");
+			lua_pushstring(L, "Unable to initialize BGFX.");
+			lua_error(L);
 			return 0;
 		}
 		return 0;
@@ -689,7 +688,6 @@ static const luaL_Reg m[] = {
 		uint16_t y = (uint16_t)lua_tonumber(L, 2);
 		uint8_t attr = (uint8_t)lua_tonumber(L, 3);
 		const char *str = lua_tostring(L, 4);
-		// printf("%dx%d 0x%2x %s\n", x, y, attr, str);
 		bgfx_dbg_text_printf(x, y, attr, "%s", str);
 		return 0;
 	} },
@@ -947,7 +945,8 @@ static const luaL_Reg m[] = {
 
 			// we only accept 4x4 matrices
 			if (num % 16 != 0) {
-				printf("Invalid table length %d, must be divisible by 16.\n", num);
+				lua_pushfstring(L, "Invalid table length %d, must be divisible by 16.\n", num);
+				lua_error(L);
 				return;
 			}
 
@@ -1097,8 +1096,6 @@ static const luaL_Reg m[] = {
 			bgfx_frame_buffer_handle_t *ud = (bgfx_frame_buffer_handle_t*)lua_newuserdata(L, sizeof(bgfx_frame_buffer_handle_t));
 			*ud = bgfx_create_frame_buffer_from_attachment(attachments.size(), attachments.data(), false);
 
-			printf("%d\n", ud->idx);
-
 			luaL_getmetatable(L, "bgfx_frame_buffer");
 			lua_setmetatable(L, -2);
 
@@ -1140,8 +1137,6 @@ static const luaL_Reg m[] = {
 		luaL_getmetatable(L, "bgfx_frame_buffer");
 		lua_setmetatable(L, -2);
 
-// bgfx_frame_buffer_handle_t bgfx_create_frame_buffer_scaled(bgfx_backbuffer_ratio_t _ratio, bgfx_texture_format_t _format, uint32_t _textureFlags);
-// bgfx_frame_buffer_handle_t bgfx_create_frame_buffer_from_nwh(void* _nwh, uint16_t _width, uint16_t _height, bgfx_texture_format_t _depthFormat);
 		return 1;
 	} },
 
