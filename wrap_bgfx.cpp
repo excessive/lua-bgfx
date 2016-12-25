@@ -195,6 +195,12 @@ struct fuck_off_cpp {
 	}
 };
 
+static std::map<const char*, bgfx_access_t, fuck_off_cpp> access_lookup = {
+	{ "read", BGFX_ACCESS_READ },
+	{ "write", BGFX_ACCESS_WRITE },
+	{ "read_write", BGFX_ACCESS_READWRITE }
+};
+
 // incomplete: doesn't include the macro function stuff
 static std::map<const char*, uint32_t, fuck_off_cpp> buffer_lookup = {
 	{ "none", BGFX_BUFFER_NONE },
@@ -981,13 +987,22 @@ static const luaL_Reg m[] = {
 	} },
 
 	// bgfx.set_transform(mtx)
+	// bgfx.set_transform(cache_index, 1)
 	{ "set_transform", [](lua_State *L) {
+		if (lua_isnumber(L, 1)) {
+			uint32_t cache = (uint32_t)luaL_checkinteger(L, 1);
+			uint16_t num   = (uint16_t)luaL_checkinteger(L, 2);
+			bgfx_set_transform_cached(cache, num);
+			return 0;
+		}
+
 		// TODO: accept tables of matrices.
 		int num = lua_objlen(L, 1);
 
 		// we only accept 4x4 matrices
 		if (num % 16 != 0) {
-			printf("Invalid table length %d, must be divisible by 16.\n", num);
+			lua_pushfstring(L, "Invalid table length %d, must be divisible by 16.\n", num);
+			lua_error(L);
 			return 0;
 		}
 
@@ -1002,11 +1017,45 @@ static const luaL_Reg m[] = {
 			lua_pop(L, 1);
 		}
 
-		bgfx_set_transform(mtx, num / 16);
+		uint32_t cached = bgfx_set_transform(mtx, num / 16);
 
 		delete[] mtx;
 
-		return 0;
+		lua_pushnumber(L, cached);
+		return 1;
+	} },
+
+	{ "alloc_transform", [](lua_State *L) {
+		// TODO: accept tables of matrices.
+		int num = lua_objlen(L, 1);
+
+		// we only accept 4x4 matrices
+		if (num % 16 != 0) {
+			lua_pushfstring(L, "Invalid table length %d, must be divisible by 16.\n", num);
+			lua_error(L);
+			return 0;
+		}
+
+		float *mtx = new float[num];
+		for (int i=1; ; i++) {
+			lua_rawgeti(L, -1, i);
+			if (lua_isnil(L,-1)) {
+				lua_pop(L, 1);
+				break;
+			}
+			mtx[i-1] = (uint16_t)luaL_checkinteger(L, -1);
+			lua_pop(L, 1);
+		}
+
+		bgfx_transform_t transform;
+		uint32_t cached = bgfx_alloc_transform(&transform, num / 16);
+
+		memcpy(transform.data, mtx, sizeof(float)*16);
+
+		delete[] mtx;
+
+		lua_pushnumber(L, cached);
+		return 1;
 	} },
 
 	// bgfx.new_frame_buffer(width, height, format, flags)
@@ -1269,13 +1318,16 @@ static const luaL_Reg m[] = {
 
 		uint8_t mip = (uint8_t)luaL_checkinteger(L, 4);
 
-		std::string _access = std::string(luaL_checkstring(L, 5));
+		const char *_access = luaL_checkstring(L, 5);
 		bgfx_access_t access = BGFX_ACCESS_READ;
-		if (_access == "write") {
-			access = BGFX_ACCESS_WRITE;
+
+		auto aval = access_lookup.find(_access);
+		if (aval != access_lookup.end()) {
+			access = aval->second;
 		}
-		if (_access == "read_write") {
-			access = BGFX_ACCESS_READWRITE;
+		else {
+			lua_pushfstring(L, "Invalid access specifier: '%s'", _access);
+			lua_error(L);
 		}
 
 		bgfx_texture_format_t format = BGFX_TEXTURE_FORMAT_RGBA8;
@@ -1297,6 +1349,48 @@ static const luaL_Reg m[] = {
 
 		bgfx_set_image(stage, *uniform, *texture, mip, access, format);
 
+		return 0;
+	} },
+
+	{ "set_compute_index_buffer", [](lua_State *L) {
+		uint8_t stage = luaL_checkinteger(L, 1);
+		bgfx_index_buffer_handle_t *ibh = to_index_buffer_ud(L, 2);
+
+		const char *_access = luaL_checkstring(L, 3);
+		bgfx_access_t access = BGFX_ACCESS_READ;
+
+		auto val = access_lookup.find(_access);
+		if (val != access_lookup.end()) {
+			access = val->second;
+		}
+		else {
+			lua_pushfstring(L, "Invalid access specifier: '%s'", _access);
+			lua_error(L);
+			return 0;
+		}
+
+		bgfx_set_compute_index_buffer(stage, *ibh, access);
+		return 0;
+	} },
+
+	{ "set_compute_vertex_buffer", [](lua_State *L) {
+		uint8_t stage = luaL_checkinteger(L, 1);
+		bgfx_vertex_buffer_handle_t *vbh = to_vertex_buffer_ud(L, 2);
+
+		const char *_access = luaL_checkstring(L, 3);
+		bgfx_access_t access = BGFX_ACCESS_READ;
+
+		auto val = access_lookup.find(_access);
+		if (val != access_lookup.end()) {
+			access = val->second;
+		}
+		else {
+			lua_pushfstring(L, "Invalid access specifier: '%s'", _access);
+			lua_error(L);
+			return 0;
+		}
+
+		bgfx_set_compute_vertex_buffer(stage, *vbh, access);
 		return 0;
 	} },
 
@@ -1734,6 +1828,31 @@ static const luaL_Reg m[] = {
 		int first = (int)lua_tonumber(L, 2);
 		int num = (int)lua_tonumber(L, 3);
 		bgfx_set_transient_index_buffer(handle, first, num);
+		return 0;
+	} },
+
+	{ "set_stencil", [](lua_State *L) {
+		uint32_t front = (uint32_t)luaL_checkinteger(L, 1);
+		uint32_t back = BGFX_STENCIL_NONE;
+		if (lua_isnumber(L, 2)) {
+			back = (uint32_t)lua_tointeger(L, 2);
+		}
+		bgfx_set_stencil(front, back);
+		return 0;
+	} },
+
+	{ "set_scissor", [](lua_State *L) {
+		if (lua_gettop(L) == 1) {
+			uint16_t cache = (uint16_t)luaL_checkinteger(L, 1);
+			bgfx_set_scissor_cached(cache);
+			return 0;
+		}
+
+		uint16_t x = (uint16_t)luaL_checkinteger(L, 1);
+		uint16_t y = (uint16_t)luaL_checkinteger(L, 2);
+		uint16_t w = (uint16_t)luaL_checkinteger(L, 3);
+		uint16_t h = (uint16_t)luaL_checkinteger(L, 4);
+		bgfx_set_scissor(x, y, w, h);
 		return 0;
 	} },
 
